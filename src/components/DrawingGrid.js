@@ -1,4 +1,4 @@
-import React from 'react'
+import React, {useEffect} from 'react'
 import styled from 'styled-components'
 
 const Wrapper = styled.div`
@@ -12,14 +12,25 @@ const InputWrapper = styled.div`
     margin-top: 20px;
 `
 
-const DrawingGrid = ({inputRef}) => {
+const DrawingGrid = ({input}) => {
 
     function onClickCalculate (){
-        let area = 0;
         let coordinates = []
-        console.log(inputRef)
+        let scaledCoordinates = []
+        console.log(input)
+
+        const ref = input[1]
+        const a = ref["endX"] - ref["startX"]
+        const b = ref["endY"] - ref["startY"]
+        const refLength = Math.sqrt((a*a) + (b*b))
+
+        console.log("LÄNGE: ", refLength)
+        const scale = input[0] / refLength
+        
+
         existingLines.forEach((item, key) => {
             coordinates.push(item["startX"], item["startY"])
+            scaledCoordinates.push(item["startX"] * scale, item["startY"] * scale)
         })
 
         Math.area = Math.area || function(polygon){
@@ -35,17 +46,16 @@ const DrawingGrid = ({inputRef}) => {
             return Math.abs(sum) * 0.5;
         }
 
-        area = Math.area(coordinates)
-        console.log(coordinates)
-        console.log("DIE FLÄCHE BETRÄGT: ", area)
+        let area_px = Math.area(coordinates)
+        let area_m = Math.area(scaledCoordinates)
+        console.log(coordinates, scaledCoordinates)
+        console.log("DIE FLÄCHE IN PX BETRÄGT: ", area_px)
+        console.log("DIE FLÄCHE IN M BETRÄGT: ", area_m)
 
         isActive = false;
         currentLine = 0;
     }
 
-
-    var canvasWidth = 400;
-    var canvasHeight = 400;
     var canvas = null;
     var bounds = null;
     var ctx = null;
@@ -60,16 +70,28 @@ const DrawingGrid = ({inputRef}) => {
     let currentLine = {};
     let lineAdded = false;
     let isActive = true;
+
+    let img = document.getElementById("image");
     
     function draw() {
+        
+        let canvas = document.getElementById("canvas");
+        let canvasHeight = canvas.height;
+        let canvasWidth = canvas.width;
         ctx.fillStyle = "white";
         ctx.fillRect(0,0,canvasWidth,canvasHeight);
+
+        //console.log("IN DRAWING: ", canvas)
         
         ctx.strokeStyle = "green";
         ctx.lineWidth = 2;
 
+        //console.log("IN DRAW: ", img)
+        ctx.drawImage(img, 0, 0);
+
         ctx.beginPath();
-        for(let i = 0; i <= 10; i++){
+
+        /*for(let i = 0; i <= 10; i++){
             ctx.moveTo(0,(canvasHeight/10) * i);
             ctx.lineTo(canvasWidth,(canvasHeight/10) * i)
             ctx.stroke();
@@ -88,7 +110,7 @@ const DrawingGrid = ({inputRef}) => {
 
         ctx.moveTo(canvasWidth/2, 0);
         ctx.lineTo(canvasWidth/2, canvasHeight)
-        ctx.stroke();
+        ctx.stroke();*/
 
         hasLoaded = true;
         
@@ -162,9 +184,10 @@ const DrawingGrid = ({inputRef}) => {
     }
 
     const onLoadFunc = () => {
+        console.log("LOADING CANVAS")
         canvas = document.getElementById("canvas");
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
+        canvas.width = 1280;
+        canvas.height = 622;
         canvas.onmousedown = onmousedown;
         canvas.onmouseup = onmouseup;
         canvas.onmousemove = onmousemove;
@@ -175,13 +198,28 @@ const DrawingGrid = ({inputRef}) => {
         draw();
     }
 
-    window.onload = onLoadFunc()
+    useEffect(() => {
+        console.log("LOADING CANVAS")
+        canvas = document.getElementById("canvas");
+        canvas.width = 1280;
+        canvas.height = 622;
+        canvas.onmousedown = onmousedown;
+        canvas.onmouseup = onmouseup;
+        canvas.onmousemove = onmousemove;
+        
+        bounds = canvas.getBoundingClientRect();
+        ctx = canvas.getContext("2d");
+        
+        draw();
+    }, [])
 
     const [gridRendered, setGridRendered] = React.useState(false)
 
-    React.useEffect (() => {
+    //console.log("GRID RENDERED: ", gridRendered)
+
+    /*React.useEffect (() => {
         setGridRendered(true)
-    }, [])
+    }, [])*/
 
     return (
         <Wrapper>
@@ -189,7 +227,8 @@ const DrawingGrid = ({inputRef}) => {
             <canvas id="canvas"></canvas>
             <InputWrapper>
                 <button onClick={() => onClickCalculate()}>Fläche berechnen --></button>   
-            </InputWrapper>  
+            </InputWrapper> 
+            <img hidden={true} id="image" src="/assets/rect-test-area.jpg"></img>
         </Wrapper>
     )
 }

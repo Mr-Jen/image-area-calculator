@@ -1,4 +1,4 @@
-import React from 'react'
+import React, {useState, useEffect} from 'react'
 import styled from 'styled-components'
 
 const Wrapper = styled.div`
@@ -12,10 +12,8 @@ const InputWrapper = styled.div`
     margin-top: 20px;
 `
 
-const ReferenceGrid = ({onClickContinue, onChangeInput}) => {
+const ReferenceGrid = ({onClickContinue, onChangeInput, onChangeRef}) => {
 
-    var canvasWidth = 400;
-    var canvasHeight = 400;
     var canvas = null;
     var bounds = null;
     var ctx = null;
@@ -26,19 +24,27 @@ const ReferenceGrid = ({onClickContinue, onChangeInput}) => {
     var mouseX = 0;
     var mouseY = 0;
     var isDrawing = false;
-    var existingLines = [];
-    let inputReference = {}
+    let inputLine = {}
     
     function draw() {
+
+        let canvas = document.getElementById("canvas");
+        let canvasHeight = canvas.height;
+        let canvasWidth = canvas.width;
         ctx.fillStyle = "white";
         ctx.fillRect(0,0,canvasWidth,canvasHeight);
         
         ctx.strokeStyle = "green";
         ctx.lineWidth = 2;
 
+        //let img = new Image;
+        let img = document.getElementById("image");
+        ctx.drawImage(img, 0, 0);
+        //img.src = "/assets/rect-test-area.jpg"
+
         ctx.beginPath();
 
-        for (let i = 0; i <= 10; i++){
+        /*for (let i = 0; i <= 10; i++){
             ctx.moveTo(0,(canvasHeight/10) * i);
             ctx.lineTo(canvasWidth,(canvasHeight/10) * i)
             ctx.stroke();
@@ -57,11 +63,11 @@ const ReferenceGrid = ({onClickContinue, onChangeInput}) => {
 
         ctx.moveTo(canvasWidth/2, 0);
         ctx.lineTo(canvasWidth/2, canvasHeight)
-        ctx.stroke();
+        ctx.stroke();*/
 
         hasLoaded = true;
         
-        var line = inputReference;
+        var line = inputLine;
         ctx.moveTo(line.startX,line.startY);
         ctx.lineTo(line.endX,line.endY);
         ctx.stroke();
@@ -74,9 +80,6 @@ const ReferenceGrid = ({onClickContinue, onChangeInput}) => {
             ctx.lineTo(mouseX,mouseY);
             ctx.stroke();
         }
-
-        existingLines.forEach((item, key) => {
-        })
     }
 
     function onReferenceDown(e) {
@@ -95,12 +98,14 @@ const ReferenceGrid = ({onClickContinue, onChangeInput}) => {
     function onReferenceUp(e) {
         if (hasLoaded && e.button === 0) {
             if (isDrawing) {
-                inputReference = {
+                inputLine = {
                     startX: startX,
                     startY: startY,
                     endX: mouseX,
                     endY: mouseY
                 };
+
+                setInputReference(inputLine)
                 
                 isDrawing = false;
             }
@@ -122,8 +127,9 @@ const ReferenceGrid = ({onClickContinue, onChangeInput}) => {
   
     window.onload = function() {
         canvas = document.getElementById("canvas");
-        canvas.width = canvasWidth;
-        canvas.height = canvasHeight;
+        let img = document.getElementById("image");
+        canvas.width = img.width;
+        canvas.height = img.height;
         canvas.onmousedown = onReferenceDown;
         canvas.onmouseup = onReferenceUp;
         canvas.onmousemove = onReferenceMove;
@@ -134,16 +140,22 @@ const ReferenceGrid = ({onClickContinue, onChangeInput}) => {
         draw();
     }
 
-    const [inputLength, setInputLength] = React.useState(0);
+    const [inputLength, setInputLength] = useState(0);
+    const [inputReference, setInputReference] = useState({});
 
     const onHandleInputChange = (e) => {
         setInputLength(e.target.value)
     }
 
-    React.useEffect(() => {
+    useEffect(() => {
         //console.log("STATE UPDATED", inputLength)
         onChangeInput(inputLength)
     }, [inputLength])
+
+    useEffect(() => {
+        console.log("INPUT REF: ", inputReference)
+        onChangeRef(inputReference)
+    }, [inputReference])
 
     return (
         <Wrapper>
@@ -153,6 +165,7 @@ const ReferenceGrid = ({onClickContinue, onChangeInput}) => {
                 <input id="input" type="number" placeholder="Länge in Metern" value={inputLength} onChange={(e) => onHandleInputChange(e)}></input>
                 <button onClick={() => onClickContinue()}>Weiter --></button>  
             </InputWrapper>
+            <img hidden={true} id="image" src="/assets/rect-test-area.jpg"></img>
         </Wrapper>
     )
 }

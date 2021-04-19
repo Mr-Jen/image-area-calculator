@@ -17,12 +17,17 @@ const App = () => {
     setShowReferenceGrid(false)
   }
 
-  const handleInputRefChange = (length) => {
-    setInputRef(length)
+  const handleInputLengthChange = (length) => {
+    setInputLength(length)
+  }
+
+  const handleInputRefChange = (ref) => {
+    setInputRef(ref)
   }
 
   const [showReferenceGrid, setShowReferenceGrid] = useState(true);
-  const [inputRef, setInputRef] = useState(0);
+  const [inputLength, setInputLength] = useState(0);
+  const [inputRef, setInputRef] = useState({});
 
   return (
     <Wrapper className="App">
@@ -30,9 +35,10 @@ const App = () => {
       {showReferenceGrid ? 
         <ReferenceGrid 
           onClickContinue={handleContentChange}
-          onChangeInput={(length) => handleInputRefChange(length)}
+          onChangeInput={(length) => handleInputLengthChange(length)}
+          onChangeRef={(ref) => handleInputRefChange(ref)}
         /> : 
-        <DrawingGrid inputRef={inputRef}/>}
+        <DrawingGrid input={[inputLength, inputRef]}/>}
     </Wrapper>
   );
 }
