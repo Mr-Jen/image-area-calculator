@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react'
+import React, {useEffect, useState} from 'react'
 import styled from 'styled-components'
 
 const Wrapper = styled.div`
@@ -28,7 +28,7 @@ const DrawingGrid = ({input}) => {
         const scale = input[0] / refLength
         
 
-        existingLines.forEach((item, key) => {
+        existingLines.forEach((item) => {
             coordinates.push(item["startX"], item["startY"])
             scaledCoordinates.push(item["startX"] * scale, item["startY"] * scale)
         })
@@ -46,6 +46,7 @@ const DrawingGrid = ({input}) => {
             return Math.abs(sum) * 0.5;
         }
 
+        console.log("SCALED: ", existingLines)
         let area_px = Math.area(coordinates)
         let area_m = Math.area(scaledCoordinates)
         console.log(coordinates, scaledCoordinates)
@@ -67,9 +68,12 @@ const DrawingGrid = ({input}) => {
     var mouseY = 0;
     var isDrawing = false;
     var existingLines = [];
+    let existingPoints = [];
     let currentLine = {};
     let lineAdded = false;
     let isActive = true;
+
+    const [position, setPosition] = useState([0,0]);
 
     let img = document.getElementById("image");
     
@@ -142,7 +146,13 @@ const DrawingGrid = ({input}) => {
                 isDrawing = true;
             }
             else {
+                console.log("ADDING LINE")
                 existingLines.push(currentLine)
+                console.log("EXISTING LINES", existingLines)
+                existingPoints = existingLines.map((item) => {
+                    return [item["startX"], item["startY"]]
+                })
+                //console.log("EXISTING POINTS: ", existingPoints)
                 lineAdded = true;
                 isDrawing = false;
             }
@@ -157,6 +167,9 @@ const DrawingGrid = ({input}) => {
             if (lineAdded && isActive) {
                 startX = currentLine["endX"];
                 startY = currentLine["endY"];
+                existingPoints.push([startX, startY])
+
+                console.log("EXISTING POINTS IN MOUSE UP: ", existingPoints)
                 
                 isDrawing = true;
                 lineAdded = false;
@@ -167,6 +180,7 @@ const DrawingGrid = ({input}) => {
     }
     
     function onmousemove(e) {
+        setPosition([e.clientX - bounds.left, e.clientY - bounds.top])
         if (hasLoaded) {
             mouseX = e.clientX - bounds.left;
             mouseY = e.clientY - bounds.top;
@@ -183,23 +197,7 @@ const DrawingGrid = ({input}) => {
         }
     }
 
-    const onLoadFunc = () => {
-        console.log("LOADING CANVAS")
-        canvas = document.getElementById("canvas");
-        canvas.width = 1280;
-        canvas.height = 622;
-        canvas.onmousedown = onmousedown;
-        canvas.onmouseup = onmouseup;
-        canvas.onmousemove = onmousemove;
-        
-        bounds = canvas.getBoundingClientRect();
-        ctx = canvas.getContext("2d");
-        
-        draw();
-    }
-
     useEffect(() => {
-        console.log("LOADING CANVAS")
         canvas = document.getElementById("canvas");
         canvas.width = 1280;
         canvas.height = 622;
@@ -213,17 +211,10 @@ const DrawingGrid = ({input}) => {
         draw();
     }, [])
 
-    const [gridRendered, setGridRendered] = React.useState(false)
-
-    //console.log("GRID RENDERED: ", gridRendered)
-
-    /*React.useEffect (() => {
-        setGridRendered(true)
-    }, [])*/
-
     return (
         <Wrapper>
-            <h5>Drawing Grid</h5>          
+            <h5>Drawing Grid</h5> 
+            <h2>Position: {position[0]} {position[1]}</h2>         
             <canvas id="canvas"></canvas>
             <InputWrapper>
                 <button onClick={() => onClickCalculate()}>Fläche berechnen --></button>   

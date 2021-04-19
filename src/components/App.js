@@ -39,6 +39,7 @@ const App = () => {
           onChangeRef={(ref) => handleInputRefChange(ref)}
         /> : 
         <DrawingGrid input={[inputLength, inputRef]}/>}
+        <button onClick={() => setShowReferenceGrid(!showReferenceGrid)}>Switch</button>
     </Wrapper>
   );
 }
