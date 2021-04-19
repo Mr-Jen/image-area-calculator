@@ -17,7 +17,6 @@ const DrawingGrid = ({input}) => {
     function onClickCalculate (){
         let coordinates = []
         let scaledCoordinates = []
-        console.log(input)
 
         const ref = input[1]
         const a = ref["endX"] - ref["startX"]
@@ -95,6 +94,13 @@ const DrawingGrid = ({input}) => {
 
         ctx.beginPath();
 
+        existingPoints.forEach((point) => {
+            ctx.beginPath();
+            ctx.arc(point[0], point[1], 4, 0, 2 * Math.PI);
+            ctx.fillStyle = "green"
+            ctx.stroke();
+        })
+
         /*for(let i = 0; i <= 10; i++){
             ctx.moveTo(0,(canvasHeight/10) * i);
             ctx.lineTo(canvasWidth,(canvasHeight/10) * i)
@@ -117,6 +123,8 @@ const DrawingGrid = ({input}) => {
         ctx.stroke();*/
 
         hasLoaded = true;
+
+        ctx.beginPath();
         
         for (var i = 0; i < existingLines.length; ++i) {
             var line = existingLines[i];
@@ -180,18 +188,42 @@ const DrawingGrid = ({input}) => {
     }
     
     function onmousemove(e) {
-        setPosition([e.clientX - bounds.left, e.clientY - bounds.top])
         if (hasLoaded) {
+            let close = false;
+            let closePoint = [];
             mouseX = e.clientX - bounds.left;
             mouseY = e.clientY - bounds.top;
+            //setPosition([mouseX, mouseY])
+
+            existingPoints.forEach((point) => {
+                let [ coordX, coordY ] = point;
+                if ((Math.abs(coordX-mouseX)) <= 20 && (Math.abs(coordY-mouseY) <= 20)){
+                    /*console.log("POINT IS CLOSE", [coordX, coordY])
+                    console.log("XDIFF: ", Math.abs(coordX-mouseX))
+                    console.log("YDIFF: ", Math.abs(coordY-mouseY))*/
+                    close = true;
+                    closePoint = [coordX, coordY]
+                }
+            })
             
             if (isDrawing && isActive) {
-                currentLine = {
-                    startX: startX,
-                    startY: startY,
-                    endX: mouseX,
-                    endY: mouseY
-                };
+                if (close){
+                    console.log("POINT IS CLOSE")
+                    currentLine = {
+                        startX: startX,
+                        startY: startY,
+                        endX: closePoint[0],
+                        endY: closePoint[1]
+                    }
+                }
+                else {
+                    currentLine = {
+                        startX: startX,
+                        startY: startY,
+                        endX: mouseX,
+                        endY: mouseY
+                    };
+                }
                 draw();
             }
         }
