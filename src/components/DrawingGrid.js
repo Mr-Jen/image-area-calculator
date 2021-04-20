@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react'
+import React, {useEffect, useState, useRef} from 'react'
 import styled from 'styled-components'
 
 import ContextMenu from './ContextMenu'
@@ -28,7 +28,7 @@ const DrawingGrid = ({input}) => {
         console.log("LÄNGE: ", refLength)
         const scale = input[0] / refLength
         
-        existingPoints.forEach((point) => {
+        existingPoints.current.forEach((point) => {
             coordinates.push(point[0], point[1])
             scaledCoordinates.push(point[0] * scale, point[1] * scale)
         })
@@ -55,8 +55,6 @@ const DrawingGrid = ({input}) => {
     }
 
     let canvas = null;
-    let bounds = null;
-    let ctx = null;
     let hasLoaded = false;
     
     let mouseX = 0;
@@ -64,18 +62,17 @@ const DrawingGrid = ({input}) => {
     let isDrawing = false;
     let isDragging = false;
     let draggingPointIndex = null;
-    let selectedNodeIndex = null;
-    let existingPoints = [];
     let isActive = true;
     const nodeButtonRadius = 4;
 
-    const [position, setPosition] = useState([0,0]);
+    //const [position, setPosition] = useState([0,0]);
     const [showContextMenu, setShowContextMenu] = useState(false);
     const [menuPosition, setMenuPosition] = useState([]);
 
     let img = document.getElementById("image");
     
     function draw() {
+        let ctx = canvasRef.current.getContext("2d");
         canvas = canvasRef
         let canvasHeight = canvas.height;
         let canvasWidth = canvas.width;
@@ -86,7 +83,7 @@ const DrawingGrid = ({input}) => {
 
         ctx.beginPath();
 
-        existingPoints.forEach((point) => {
+        existingPoints.current.forEach((point) => {
             ctx.beginPath();
             ctx.arc(point[0], point[1], nodeButtonRadius, 0, 2 * Math.PI);
             ctx.fillStyle = "green"
@@ -94,9 +91,6 @@ const DrawingGrid = ({input}) => {
             ctx.strokeStyle = "black"
             ctx.fill();
             ctx.stroke();
-            /*ctx.beginPath();
-            ctx.fillRect(point[0],point[1],1,1); // fill in the pixel at (10,10)
-            ctx.fill();*/
         })
 
         hasLoaded = true;
@@ -105,16 +99,16 @@ const DrawingGrid = ({input}) => {
         ctx.strokeStyle = "green";
         ctx.lineWidth = 2;
         
-        existingPoints.forEach((point, index) => {
-            let nextPoint = existingPoints[index+1] && existingPoints[index+1]
+        existingPoints.current.forEach((point, index) => {
+            let nextPoint = existingPoints.current[index+1] && existingPoints.current[index+1]
             ctx.moveTo(point[0], point[1])
             nextPoint && ctx.lineTo(nextPoint[0], nextPoint[1])
         })
     
         ctx.stroke();
         
-        if (isDrawing && existingPoints.length > 0) {
-            let lastPoint = existingPoints[existingPoints.length-1]
+        if (isDrawing && existingPoints.current.length > 0) {
+            let lastPoint = existingPoints.current[existingPoints.current.length-1]
             ctx.strokeStyle = "darkred";
             ctx.lineWidth = 3;
             ctx.beginPath();
@@ -126,16 +120,19 @@ const DrawingGrid = ({input}) => {
     }
     
     const handleDeleteNode = () => {
-        console.log("DELETING NODE: ", existingPoints)
-        /*let copy = existingPoints
-        selectedNodeIndex > -1 && existingPoints.splice(selectedNodeIndex, 1);
-        console.log("EXISTING POINTS BEFORE AND AFTER DELETION: ", copy, existingPoints)
-        draw();*/
+        //existingPoints.current.forEach(point => console.log(point));
+        console.log("DELETING INDEX: ", selectedNodeIndex.current)
+        setShowContextMenu(false);
+        console.log("EXISTING POINTS BEFORE DELETION: ", existingPoints.current)
+        selectedNodeIndex.current > -1 && existingPoints.current.splice(selectedNodeIndex.current, 1);
+        console.log("EXISTING POINTS AFTER DELETION: ", existingPoints.current)
+        selectedNodeIndex.current = null;
+        draw();
     }
 
     const onHandleReset = () => {
         isActive = true;
-        existingPoints = [];
+        existingPoints.current = [];
         draw();
     }
 
@@ -145,15 +142,15 @@ const DrawingGrid = ({input}) => {
         if (hasLoaded && e.button === 0) {
             isDrawing = false;
             if (!isDrawing && isActive) {
-                existingPoints.forEach((point) => {
+                existingPoints.current.forEach((point) => {
                     if( Math.abs(mouseX - point[0]) <= nodeButtonRadius && Math.abs(mouseY - point[1]) <= nodeButtonRadius ){
                         pointIsClose = true;
                         closePoint = point
                     }
                 })
-                pointIsClose ? existingPoints.push(closePoint) : existingPoints.push([mouseX, mouseY])
-                if (existingPoints.length > 1){
-                    if(existingPoints[0] === existingPoints[existingPoints.length-1]){
+                pointIsClose ? existingPoints.current.push(closePoint) : existingPoints.current.push([mouseX, mouseY])
+                if (existingPoints.current.length > 1){
+                    if(existingPoints.current[0] === existingPoints.current[existingPoints.current.length-1]){
                         isActive = false;
                     }
                 }
@@ -161,7 +158,7 @@ const DrawingGrid = ({input}) => {
             draw();
         }
 
-        !isActive && existingPoints.forEach((point, index) => {
+        !isActive && existingPoints.current.forEach((point, index) => {
             if( Math.abs(mouseX - point[0]) <= nodeButtonRadius && Math.abs(mouseY - point[1]) <= nodeButtonRadius ){
                 isDragging = true;
                 draggingPointIndex = index;
@@ -185,15 +182,15 @@ const DrawingGrid = ({input}) => {
     
     function onmousemove(e) {
         if (hasLoaded) {
-            mouseX = e.clientX - bounds.left;
-            mouseY = e.clientY - bounds.top;
+            mouseX = e.clientX - canvasRef.current.getBoundingClientRect().left;
+            mouseY = e.clientY - canvasRef.current.getBoundingClientRect().top;
             
             if (isDrawing && isActive) {
                 draw();
             }
 
             if(!isActive && isDragging){
-                existingPoints[draggingPointIndex] = [mouseX, mouseY]
+                existingPoints.current[draggingPointIndex] = [mouseX, mouseY]
                 draw();
             }
         }
@@ -201,16 +198,18 @@ const DrawingGrid = ({input}) => {
 
     const canvasRef = React.useRef();
     const imageRef = React.useRef();
+    let existingPoints = useRef([]);
+    let selectedNodeIndex = useRef(null);
 
     useEffect(() => {
         let canvas = canvasRef.current;
         canvas.addEventListener('contextmenu', function(event) {
             event.preventDefault();
 
-            existingPoints.forEach((point) => {
+            existingPoints.current.forEach((point) => {
                 if( Math.abs(mouseX - point[0]) <= nodeButtonRadius && Math.abs(mouseY - point[1]) <= nodeButtonRadius ){
-                    selectedNodeIndex = existingPoints.indexOf(point)
-                    console.log("SHOW CONTEXT MENU OF NODE: ", selectedNodeIndex)
+                    selectedNodeIndex.current = existingPoints.current.indexOf(point)
+                    console.log("SHOW CONTEXT MENU OF NODE: ", selectedNodeIndex.current)
                     setShowContextMenu(true);
                     setMenuPosition(point);
                 }
@@ -223,16 +222,12 @@ const DrawingGrid = ({input}) => {
         canvas.onmouseup = onmouseup;
         canvas.onmousemove = onmousemove;
         
-        bounds = canvas.getBoundingClientRect();
-        ctx = canvas.getContext("2d");
-        
         draw();
     }, [])
 
     return (
         <Wrapper>
-            <h5>Drawing Grid</h5> 
-            <h2>Position: {position[0]} {position[1]}</h2>         
+            <h5>Drawing Grid</h5>      
             <canvas id="canvas" ref={canvasRef}></canvas>
             <InputWrapper>
                 <button onClick={() => onHandleReset()}>Zurücksetzen</button>  
