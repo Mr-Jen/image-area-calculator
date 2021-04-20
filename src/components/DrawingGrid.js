@@ -65,9 +65,11 @@ const DrawingGrid = ({input}) => {
     let isDragging = false;
     let draggingPointIndex = null;
     let selectedNodeIndex = null;
-    let existingPoints = [];
+    //let existingPoints = [];
     let isActive = true;
     const nodeButtonRadius = 4;
+
+    const [existingPoints, setExistingPoints] = useState([]);
 
     const [position, setPosition] = useState([0,0]);
     const [showContextMenu, setShowContextMenu] = useState(false);
@@ -104,6 +106,8 @@ const DrawingGrid = ({input}) => {
         ctx.beginPath();
         ctx.strokeStyle = "green";
         ctx.lineWidth = 2;
+
+        console.log("POINTS BEFORE DRAWING: ", existingPoints)
         
         existingPoints.forEach((point, index) => {
             let nextPoint = existingPoints[index+1] && existingPoints[index+1]
@@ -124,9 +128,15 @@ const DrawingGrid = ({input}) => {
         }
 
     }
+
+    const logExistingPoints = () => {
+        console.log("LOGGING EXISTING POINTS: ", existingPoints)
+    }
     
     const handleDeleteNode = () => {
         console.log("DELETING NODE: ", existingPoints)
+        logExistingPoints();
+
         /*let copy = existingPoints
         selectedNodeIndex > -1 && existingPoints.splice(selectedNodeIndex, 1);
         console.log("EXISTING POINTS BEFORE AND AFTER DELETION: ", copy, existingPoints)
@@ -134,8 +144,9 @@ const DrawingGrid = ({input}) => {
     }
 
     const onHandleReset = () => {
+        console.log("LOGGING EXISTING POINTS: ", existingPoints)
         isActive = true;
-        existingPoints = [];
+        setExistingPoints([]);
         draw();
     }
 
@@ -151,7 +162,20 @@ const DrawingGrid = ({input}) => {
                         closePoint = point
                     }
                 })
-                pointIsClose ? existingPoints.push(closePoint) : existingPoints.push([mouseX, mouseY])
+
+                
+                let oldPoints = [...existingPoints];
+                if (pointIsClose){
+                    oldPoints.push(closePoint);
+                    console.log("POINTS BEFORE SETTING CLOSE: ", oldPoints)
+                    setExistingPoints(oldPoints)
+                } else {
+                    oldPoints.push([mouseX, mouseY])
+                    console.log("POINTS BEFORE SETTING: ", oldPoints)
+                    setExistingPoints(oldPoints)
+                }
+                
+                //logExistingPoints();
                 if (existingPoints.length > 1){
                     if(existingPoints[0] === existingPoints[existingPoints.length-1]){
                         isActive = false;
@@ -193,7 +217,9 @@ const DrawingGrid = ({input}) => {
             }
 
             if(!isActive && isDragging){
-                existingPoints[draggingPointIndex] = [mouseX, mouseY]
+                let oldPoints = [...existingPoints]
+                oldPoints[draggingPointIndex] = [mouseX, mouseY]
+                setExistingPoints(oldPoints)
                 draw();
             }
         }
@@ -229,6 +255,11 @@ const DrawingGrid = ({input}) => {
         draw();
     }, [])
 
+    useEffect(() => {
+        console.log("POINT ADDED: ", existingPoints)
+        draw();
+    }, [existingPoints])
+
     return (
         <Wrapper>
             <h5>Drawing Grid</h5> 
@@ -249,7 +280,7 @@ const DrawingGrid = ({input}) => {
                 <ContextMenu 
                     marginLeft={menuPosition[0]} 
                     marginTop={menuPosition[1]} 
-                    onDeleteNode={handleDeleteNode}
+                    onDeleteNode={() => handleDeleteNode()}
                     onCloseMenu={() => setShowContextMenu(false)}
                 />
             }
