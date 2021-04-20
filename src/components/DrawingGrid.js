@@ -67,7 +67,7 @@ const DrawingGrid = ({input}) => {
     let selectedNodeIndex = null;
     let existingPoints = [];
     let isActive = true;
-    const nodeButtonRadius = 10;
+    const nodeButtonRadius = 4;
 
     const [position, setPosition] = useState([0,0]);
     const [showContextMenu, setShowContextMenu] = useState(false);
@@ -76,13 +76,11 @@ const DrawingGrid = ({input}) => {
     let img = document.getElementById("image");
     
     function draw() {
+        canvas = canvasRef
         let canvasHeight = canvas.height;
         let canvasWidth = canvas.width;
         ctx.fillStyle = "white";
         ctx.fillRect(0,0,canvasWidth,canvasHeight);
-        
-        ctx.strokeStyle = "green";
-        ctx.lineWidth = 2;
 
         ctx.drawImage(img, 0, 0);
 
@@ -92,12 +90,20 @@ const DrawingGrid = ({input}) => {
             ctx.beginPath();
             ctx.arc(point[0], point[1], nodeButtonRadius, 0, 2 * Math.PI);
             ctx.fillStyle = "green"
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "black"
+            ctx.fill();
             ctx.stroke();
+            /*ctx.beginPath();
+            ctx.fillRect(point[0],point[1],1,1); // fill in the pixel at (10,10)
+            ctx.fill();*/
         })
 
         hasLoaded = true;
 
         ctx.beginPath();
+        ctx.strokeStyle = "green";
+        ctx.lineWidth = 2;
         
         existingPoints.forEach((point, index) => {
             let nextPoint = existingPoints[index+1] && existingPoints[index+1]
@@ -119,12 +125,18 @@ const DrawingGrid = ({input}) => {
 
     }
     
-    function handleDeleteNode (){
+    const handleDeleteNode = () => {
         console.log("DELETING NODE: ", existingPoints)
         /*let copy = existingPoints
         selectedNodeIndex > -1 && existingPoints.splice(selectedNodeIndex, 1);
         console.log("EXISTING POINTS BEFORE AND AFTER DELETION: ", copy, existingPoints)
         draw();*/
+    }
+
+    const onHandleReset = () => {
+        isActive = true;
+        existingPoints = [];
+        draw();
     }
 
     function onmousedown(e) {
@@ -143,7 +155,6 @@ const DrawingGrid = ({input}) => {
                 if (existingPoints.length > 1){
                     if(existingPoints[0] === existingPoints[existingPoints.length-1]){
                         isActive = false;
-                        console.log("CLICKED EXISTING POINT")
                     }
                 }
             }
@@ -153,7 +164,6 @@ const DrawingGrid = ({input}) => {
         !isActive && existingPoints.forEach((point, index) => {
             if( Math.abs(mouseX - point[0]) <= nodeButtonRadius && Math.abs(mouseY - point[1]) <= nodeButtonRadius ){
                 isDragging = true;
-                console.log("NODE CLICKED", index);
                 draggingPointIndex = index;
 
             }
@@ -170,7 +180,6 @@ const DrawingGrid = ({input}) => {
         if(!isActive && isDragging){
             isDragging = false;
             draggingPointIndex = null;
-            console.log("DRAGGING STOPPED")
         }
     }
     
@@ -184,15 +193,14 @@ const DrawingGrid = ({input}) => {
             }
 
             if(!isActive && isDragging){
-                console.log(`DRAGGING POINT ${draggingPointIndex}  TO: `, [mouseX, mouseY])
                 existingPoints[draggingPointIndex] = [mouseX, mouseY]
                 draw();
-                console.log("EXISTING POINTS: ", existingPoints)
             }
         }
     }
 
     const canvasRef = React.useRef();
+    const imageRef = React.useRef();
 
     useEffect(() => {
         let canvas = canvasRef.current;
@@ -227,9 +235,16 @@ const DrawingGrid = ({input}) => {
             <h2>Position: {position[0]} {position[1]}</h2>         
             <canvas id="canvas" ref={canvasRef}></canvas>
             <InputWrapper>
-                <button onClick={() => onClickCalculate()}>Fläche berechnen --></button>   
+                <button onClick={() => onHandleReset()}>Zurücksetzen</button>  
+                <button onClick={() => onClickCalculate()}>Fläche berechnen --></button>
             </InputWrapper> 
-            <img hidden={true} id="image" src="/assets/rect-test-area.jpg"></img>
+            <img 
+                alt="tracking-objects" 
+                hidden={true} id="image" 
+                src="/assets/rect-test-area.jpg"
+                ref={imageRef}
+            >
+            </img>
             {showContextMenu && 
                 <ContextMenu 
                     marginLeft={menuPosition[0]} 

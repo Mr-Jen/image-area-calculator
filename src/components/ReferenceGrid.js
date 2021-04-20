@@ -165,7 +165,7 @@ const ReferenceGrid = ({onClickContinue, onChangeInput, onChangeRef}) => {
                 <input id="input" type="number" placeholder="Länge in Metern" value={inputLength} onChange={(e) => onHandleInputChange(e)}></input>
                 <button onClick={() => onClickContinue()}>Weiter --></button>  
             </InputWrapper>
-            <img hidden={true} id="image" src="/assets/rect-test-area.jpg"></img>
+            <img alt="tracking-objects" hidden={true} id="image" src="/assets/rect-test-area.jpg"></img>
         </Wrapper>
     )
 }
