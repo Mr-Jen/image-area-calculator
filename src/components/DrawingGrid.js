@@ -1,6 +1,8 @@
 import React, {useEffect, useState} from 'react'
 import styled from 'styled-components'
 
+import ContextMenu from './ContextMenu'
+
 const Wrapper = styled.div`
     display: flex;
     flex-direction: column;
@@ -15,8 +17,8 @@ const InputWrapper = styled.div`
 const DrawingGrid = ({input}) => {
 
     function onClickCalculate (){
-        let coordinates = []
-        let scaledCoordinates = []
+        let coordinates = [];
+        let scaledCoordinates = [];
 
         const ref = input[1]
         const a = ref["endX"] - ref["startX"]
@@ -26,10 +28,9 @@ const DrawingGrid = ({input}) => {
         console.log("LÄNGE: ", refLength)
         const scale = input[0] / refLength
         
-
-        existingLines.forEach((item) => {
-            coordinates.push(item["startX"], item["startY"])
-            scaledCoordinates.push(item["startX"] * scale, item["startY"] * scale)
+        existingPoints.forEach((point) => {
+            coordinates.push(point[0], point[1])
+            scaledCoordinates.push(point[0] * scale, point[1] * scale)
         })
 
         Math.area = Math.area || function(polygon){
@@ -45,192 +46,169 @@ const DrawingGrid = ({input}) => {
             return Math.abs(sum) * 0.5;
         }
 
-        console.log("SCALED: ", existingLines)
         let area_px = Math.area(coordinates)
         let area_m = Math.area(scaledCoordinates)
-        console.log(coordinates, scaledCoordinates)
         console.log("DIE FLÄCHE IN PX BETRÄGT: ", area_px)
         console.log("DIE FLÄCHE IN M BETRÄGT: ", area_m)
 
         isActive = false;
-        currentLine = 0;
     }
 
-    var canvas = null;
-    var bounds = null;
-    var ctx = null;
-    var hasLoaded = false;
+    let canvas = null;
+    let bounds = null;
+    let ctx = null;
+    let hasLoaded = false;
     
-    var startX = 0;
-    var startY = 0;
-    var mouseX = 0;
-    var mouseY = 0;
-    var isDrawing = false;
-    var existingLines = [];
+    let mouseX = 0;
+    let mouseY = 0;
+    let isDrawing = false;
+    let isDragging = false;
+    let draggingPointIndex = null;
+    let selectedNodeIndex = null;
     let existingPoints = [];
-    let currentLine = {};
-    let lineAdded = false;
     let isActive = true;
+    const nodeButtonRadius = 10;
 
     const [position, setPosition] = useState([0,0]);
+    const [showContextMenu, setShowContextMenu] = useState(false);
+    const [menuPosition, setMenuPosition] = useState([]);
 
     let img = document.getElementById("image");
     
     function draw() {
-        
-        let canvas = document.getElementById("canvas");
         let canvasHeight = canvas.height;
         let canvasWidth = canvas.width;
         ctx.fillStyle = "white";
         ctx.fillRect(0,0,canvasWidth,canvasHeight);
-
-        //console.log("IN DRAWING: ", canvas)
         
         ctx.strokeStyle = "green";
         ctx.lineWidth = 2;
 
-        //console.log("IN DRAW: ", img)
         ctx.drawImage(img, 0, 0);
 
         ctx.beginPath();
 
         existingPoints.forEach((point) => {
             ctx.beginPath();
-            ctx.arc(point[0], point[1], 4, 0, 2 * Math.PI);
+            ctx.arc(point[0], point[1], nodeButtonRadius, 0, 2 * Math.PI);
             ctx.fillStyle = "green"
             ctx.stroke();
         })
-
-        /*for(let i = 0; i <= 10; i++){
-            ctx.moveTo(0,(canvasHeight/10) * i);
-            ctx.lineTo(canvasWidth,(canvasHeight/10) * i)
-            ctx.stroke();
-
-            ctx.moveTo((canvasWidth/10) * i,0);
-            ctx.lineTo((canvasWidth/10) * i,canvasHeight)
-            ctx.stroke();
-        }
-
-        ctx.beginPath();
-
-        ctx.moveTo(0, canvasHeight/2);
-        ctx.lineTo(canvasWidth, canvasHeight/2)
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 4;
-
-        ctx.moveTo(canvasWidth/2, 0);
-        ctx.lineTo(canvasWidth/2, canvasHeight)
-        ctx.stroke();*/
 
         hasLoaded = true;
 
         ctx.beginPath();
         
-        for (var i = 0; i < existingLines.length; ++i) {
-            var line = existingLines[i];
-            ctx.moveTo(line.startX,line.startY);
-            ctx.lineTo(line.endX,line.endY);
-        }
+        existingPoints.forEach((point, index) => {
+            let nextPoint = existingPoints[index+1] && existingPoints[index+1]
+            ctx.moveTo(point[0], point[1])
+            nextPoint && ctx.lineTo(nextPoint[0], nextPoint[1])
+        })
     
         ctx.stroke();
         
-        if (isDrawing) {
+        if (isDrawing && existingPoints.length > 0) {
+            let lastPoint = existingPoints[existingPoints.length-1]
             ctx.strokeStyle = "darkred";
             ctx.lineWidth = 3;
             ctx.beginPath();
-            ctx.moveTo(startX,startY);
+            ctx.moveTo(lastPoint[0],lastPoint[1]);
             ctx.lineTo(mouseX,mouseY);
             ctx.stroke();
         }
 
     }
     
-    function onmousedown(e) {
-        if (hasLoaded && e.button === 0) {
-            if (!isDrawing && isActive) {
-                startX = e.clientX - bounds.left;
-                startY = e.clientY - bounds.top;
-                
-                isDrawing = true;
-            }
-            else {
-                console.log("ADDING LINE")
-                existingLines.push(currentLine)
-                console.log("EXISTING LINES", existingLines)
-                existingPoints = existingLines.map((item) => {
-                    return [item["startX"], item["startY"]]
-                })
-                //console.log("EXISTING POINTS: ", existingPoints)
-                lineAdded = true;
-                isDrawing = false;
-            }
-            
-            draw();
+    function handleDeleteNode (){
+        console.log("DELETING NODE: ", existingPoints)
+        /*let copy = existingPoints
+        selectedNodeIndex > -1 && existingPoints.splice(selectedNodeIndex, 1);
+        console.log("EXISTING POINTS BEFORE AND AFTER DELETION: ", copy, existingPoints)
+        draw();*/
+    }
 
+    function onmousedown(e) {
+        let pointIsClose = false;
+        let closePoint = [];
+        if (hasLoaded && e.button === 0) {
+            isDrawing = false;
+            if (!isDrawing && isActive) {
+                existingPoints.forEach((point) => {
+                    if( Math.abs(mouseX - point[0]) <= nodeButtonRadius && Math.abs(mouseY - point[1]) <= nodeButtonRadius ){
+                        pointIsClose = true;
+                        closePoint = point
+                    }
+                })
+                pointIsClose ? existingPoints.push(closePoint) : existingPoints.push([mouseX, mouseY])
+                if (existingPoints.length > 1){
+                    if(existingPoints[0] === existingPoints[existingPoints.length-1]){
+                        isActive = false;
+                        console.log("CLICKED EXISTING POINT")
+                    }
+                }
+            }
+            draw();
         }
+
+        !isActive && existingPoints.forEach((point, index) => {
+            if( Math.abs(mouseX - point[0]) <= nodeButtonRadius && Math.abs(mouseY - point[1]) <= nodeButtonRadius ){
+                isDragging = true;
+                console.log("NODE CLICKED", index);
+                draggingPointIndex = index;
+
+            }
+        })
     }
     
     function onmouseup(e) {
         if (hasLoaded && e.button === 0) {
-            if (lineAdded && isActive) {
-                startX = currentLine["endX"];
-                startY = currentLine["endY"];
-                existingPoints.push([startX, startY])
-
-                console.log("EXISTING POINTS IN MOUSE UP: ", existingPoints)
-                
+            if (isActive) {
                 isDrawing = true;
-                lineAdded = false;
             }
-            
             isActive && draw();
+        }
+        if(!isActive && isDragging){
+            isDragging = false;
+            draggingPointIndex = null;
+            console.log("DRAGGING STOPPED")
         }
     }
     
     function onmousemove(e) {
         if (hasLoaded) {
-            let close = false;
-            let closePoint = [];
             mouseX = e.clientX - bounds.left;
             mouseY = e.clientY - bounds.top;
-            //setPosition([mouseX, mouseY])
-
-            existingPoints.forEach((point) => {
-                let [ coordX, coordY ] = point;
-                if ((Math.abs(coordX-mouseX)) <= 20 && (Math.abs(coordY-mouseY) <= 20)){
-                    /*console.log("POINT IS CLOSE", [coordX, coordY])
-                    console.log("XDIFF: ", Math.abs(coordX-mouseX))
-                    console.log("YDIFF: ", Math.abs(coordY-mouseY))*/
-                    close = true;
-                    closePoint = [coordX, coordY]
-                }
-            })
             
             if (isDrawing && isActive) {
-                if (close){
-                    console.log("POINT IS CLOSE")
-                    currentLine = {
-                        startX: startX,
-                        startY: startY,
-                        endX: closePoint[0],
-                        endY: closePoint[1]
-                    }
-                }
-                else {
-                    currentLine = {
-                        startX: startX,
-                        startY: startY,
-                        endX: mouseX,
-                        endY: mouseY
-                    };
-                }
                 draw();
+            }
+
+            if(!isActive && isDragging){
+                console.log(`DRAGGING POINT ${draggingPointIndex}  TO: `, [mouseX, mouseY])
+                existingPoints[draggingPointIndex] = [mouseX, mouseY]
+                draw();
+                console.log("EXISTING POINTS: ", existingPoints)
             }
         }
     }
 
+    const canvasRef = React.useRef();
+
     useEffect(() => {
-        canvas = document.getElementById("canvas");
+        let canvas = canvasRef.current;
+        canvas.addEventListener('contextmenu', function(event) {
+            event.preventDefault();
+
+            existingPoints.forEach((point) => {
+                if( Math.abs(mouseX - point[0]) <= nodeButtonRadius && Math.abs(mouseY - point[1]) <= nodeButtonRadius ){
+                    selectedNodeIndex = existingPoints.indexOf(point)
+                    console.log("SHOW CONTEXT MENU OF NODE: ", selectedNodeIndex)
+                    setShowContextMenu(true);
+                    setMenuPosition(point);
+                }
+            })
+
+        });
         canvas.width = 1280;
         canvas.height = 622;
         canvas.onmousedown = onmousedown;
@@ -247,11 +225,19 @@ const DrawingGrid = ({input}) => {
         <Wrapper>
             <h5>Drawing Grid</h5> 
             <h2>Position: {position[0]} {position[1]}</h2>         
-            <canvas id="canvas"></canvas>
+            <canvas id="canvas" ref={canvasRef}></canvas>
             <InputWrapper>
                 <button onClick={() => onClickCalculate()}>Fläche berechnen --></button>   
             </InputWrapper> 
             <img hidden={true} id="image" src="/assets/rect-test-area.jpg"></img>
+            {showContextMenu && 
+                <ContextMenu 
+                    marginLeft={menuPosition[0]} 
+                    marginTop={menuPosition[1]} 
+                    onDeleteNode={handleDeleteNode}
+                    onCloseMenu={() => setShowContextMenu(false)}
+                />
+            }
         </Wrapper>
     )
 }

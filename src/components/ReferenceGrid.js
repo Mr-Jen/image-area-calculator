@@ -150,12 +150,12 @@ const ReferenceGrid = ({onClickContinue, onChangeInput, onChangeRef}) => {
     useEffect(() => {
         //console.log("STATE UPDATED", inputLength)
         onChangeInput(inputLength)
-    }, [inputLength])
+    }, [inputLength, onChangeInput])
 
     useEffect(() => {
         console.log("INPUT REF: ", inputReference)
         onChangeRef(inputReference)
-    }, [inputReference])
+    }, [inputReference, onChangeRef])
 
     return (
         <Wrapper>
