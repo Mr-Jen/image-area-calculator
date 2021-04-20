@@ -63,7 +63,7 @@ const DrawingGrid = ({input}) => {
     let isDragging = false;
     let draggingPointIndex = null;
     let isActive = true;
-    const nodeButtonRadius = 4;
+    const nodeButtonRadius = 5;
 
     //const [position, setPosition] = useState([0,0]);
     const [showContextMenu, setShowContextMenu] = useState(false);
@@ -120,12 +120,8 @@ const DrawingGrid = ({input}) => {
     }
     
     const handleDeleteNode = () => {
-        //existingPoints.current.forEach(point => console.log(point));
-        console.log("DELETING INDEX: ", selectedNodeIndex.current)
         setShowContextMenu(false);
-        console.log("EXISTING POINTS BEFORE DELETION: ", existingPoints.current)
         selectedNodeIndex.current > -1 && existingPoints.current.splice(selectedNodeIndex.current, 1);
-        console.log("EXISTING POINTS AFTER DELETION: ", existingPoints.current)
         selectedNodeIndex.current = null;
         draw();
     }
@@ -136,23 +132,28 @@ const DrawingGrid = ({input}) => {
         draw();
     }
 
-    function onmousedown(e) {
-        let pointIsClose = false;
+    const calcClosePoint = () => {
         let closePoint = [];
+        existingPoints.current.forEach((point) => {
+            if( Math.abs(mouseX - point[0]) <= 2 * nodeButtonRadius && Math.abs(mouseY - point[1]) <= 2 * nodeButtonRadius ){
+                closePoint = point
+            }
+        })
+        return closePoint
+    }
+
+    function onmousedown(e) {
         if (hasLoaded && e.button === 0) {
             isDrawing = false;
             if (!isDrawing && isActive) {
-                existingPoints.current.forEach((point) => {
-                    if( Math.abs(mouseX - point[0]) <= nodeButtonRadius && Math.abs(mouseY - point[1]) <= nodeButtonRadius ){
-                        pointIsClose = true;
-                        closePoint = point
-                    }
-                })
-                pointIsClose ? existingPoints.current.push(closePoint) : existingPoints.current.push([mouseX, mouseY])
-                if (existingPoints.current.length > 1){
-                    if(existingPoints.current[0] === existingPoints.current[existingPoints.current.length-1]){
-                        isActive = false;
-                    }
+                let closePoint = calcClosePoint();
+
+                if (closePoint.length > 0){
+                    existingPoints.current.push(closePoint)
+                    isActive = false;
+                }
+                else {
+                    existingPoints.current.push([mouseX, mouseY])
                 }
             }
             draw();
@@ -185,12 +186,10 @@ const DrawingGrid = ({input}) => {
             mouseX = e.clientX - canvasRef.current.getBoundingClientRect().left;
             mouseY = e.clientY - canvasRef.current.getBoundingClientRect().top;
             
-            if (isDrawing && isActive) {
-                draw();
-            }
+            (isDrawing && isActive) && draw();
 
             if(!isActive && isDragging){
-                existingPoints.current[draggingPointIndex] = [mouseX, mouseY]
+                existingPoints.current[draggingPointIndex] = (calcClosePoint().length > 0 && (draggingPointIndex === 0 || draggingPointIndex === existingPoints.current.length - 1)) ? calcClosePoint() : [mouseX, mouseY]
                 draw();
             }
         }
