@@ -16,7 +16,7 @@ const InputWrapper = styled.div`
 
 const DrawingGrid = ({input}) => {
 
-    function onClickCalculate (){
+    function onClickCalculateArea (){
         let coordinates = [];
         let scaledCoordinates = [];
 
@@ -48,10 +48,48 @@ const DrawingGrid = ({input}) => {
 
         let area_px = Math.area(coordinates)
         let area_m = Math.area(scaledCoordinates)
+        setRes(area_m);
         console.log("DIE FLÄCHE IN PX BETRÄGT: ", area_px)
         console.log("DIE FLÄCHE IN M BETRÄGT: ", area_m)
 
         isActive = false;
+    }
+    
+    const calcCoordDiff = (nPoint, point) => {
+        if (nPoint[0] >= point[0] && nPoint[1] >= point[1]){
+            return ((nPoint[0] >= mouseX && point[0] <= mouseX) && (nPoint[1] >= mouseY && point[1] <= mouseY)) && true;
+        } else if (nPoint[0] >= point[0] && nPoint[1] <= point[1]){
+            return ((nPoint[0] >= mouseX && point[0] <= mouseX) && (nPoint[1] <= mouseY && point[1] >= mouseY)) && true;
+        } else if (nPoint[0] <= point[0] && nPoint[1] >= point[1]){
+            return ((nPoint[0] <= mouseX && point[0] >= mouseX) && (nPoint[1] >= mouseY && point[1] <= mouseY)) && true;  
+        } else if (nPoint[0] <= point[0] && nPoint[1] <= point[1]){
+            return ((nPoint[0] <= mouseX && point[0] >= mouseX) && (nPoint[1] <= mouseY && point[1] >= mouseY)) && true;      
+        }
+    }
+
+    const calcLineIntersect = () => {
+        let lineIntersect = false;
+        let ePoints = existingPoints?.current;
+        let yIntercept = 0;
+        let calculatedY = 0;
+        intersectedPoints.current = [];
+
+        ePoints.forEach((point, index) => {
+            let nPoint = ePoints[index+1] ? ePoints[index+1] : null;
+            let slope = nPoint && ((nPoint[1]-point[1]) / (nPoint[0]-point[0]));
+            yIntercept = nPoint && (point[1] - slope * point[0]);
+            calculatedY = mouseX * slope + yIntercept
+
+            if(nPoint !== null && calcCoordDiff(nPoint, point)){
+                if (Math.abs(calculatedY - mouseY) <= 10) {
+                    lineIntersect = true;
+                    intersectedPoints.current = [point, nPoint];
+                    window.requestAnimationFrame(draw);
+                }
+            }
+        })
+        requestAnimationFrame(draw);
+        return lineIntersect;
     }
 
     let canvas = null;
@@ -65,10 +103,10 @@ const DrawingGrid = ({input}) => {
     let isActive = true;
     const nodeButtonRadius = 5;
 
-    //const [position, setPosition] = useState([0,0]);
+    const [position, setPosition] = useState([0,0]);
     const [showContextMenu, setShowContextMenu] = useState(false);
     const [menuPosition, setMenuPosition] = useState([]);
-
+    const [res, setRes] = useState(null);
     let img = document.getElementById("image");
     
     function draw() {
@@ -94,18 +132,35 @@ const DrawingGrid = ({input}) => {
         })
 
         hasLoaded = true;
-
-        ctx.beginPath();
-        ctx.strokeStyle = "green";
-        ctx.lineWidth = 2;
         
         existingPoints.current.forEach((point, index) => {
-            let nextPoint = existingPoints.current[index+1] && existingPoints.current[index+1]
-            ctx.moveTo(point[0], point[1])
-            nextPoint && ctx.lineTo(nextPoint[0], nextPoint[1])
+            let match = false;
+            let nPoint = existingPoints.current[index+1] && existingPoints.current[index+1]
+            if (nPoint && intersectedPoints.current){
+                match = (point === intersectedPoints.current[0] && nPoint && intersectedPoints.current[1]) && true;
+            }
+
+            if (match){
+                ctx.beginPath();
+                ctx.moveTo(point[0], point[1])
+                nPoint && ctx.lineTo(nPoint[0], nPoint[1])
+                //ctx.strokeStyle = "blue";
+                ctx.setLineDash([10, 10]);
+                ctx.lineWidth = 4;
+                ctx.stroke();
+            }
+            else {
+                ctx.beginPath();
+                ctx.moveTo(point[0], point[1])
+                nPoint && ctx.lineTo(nPoint[0], nPoint[1])
+                ctx.strokeStyle = "green";
+                ctx.setLineDash([]);
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            }
         })
     
-        ctx.stroke();
+        //ctx.stroke();
         
         if (isDrawing && existingPoints.current.length > 0) {
             let lastPoint = existingPoints.current[existingPoints.current.length-1]
@@ -123,13 +178,13 @@ const DrawingGrid = ({input}) => {
         setShowContextMenu(false);
         selectedNodeIndex.current > -1 && existingPoints.current.splice(selectedNodeIndex.current, 1);
         selectedNodeIndex.current = null;
-        draw();
+        window.requestAnimationFrame(draw);
     }
 
     const onHandleReset = () => {
         isActive = true;
         existingPoints.current = [];
-        draw();
+        window.requestAnimationFrame(draw);
     }
 
     const calcClosePoint = () => {
@@ -156,7 +211,7 @@ const DrawingGrid = ({input}) => {
                     existingPoints.current.push([mouseX, mouseY])
                 }
             }
-            draw();
+            window.requestAnimationFrame(draw);
         }
 
         !isActive && existingPoints.current.forEach((point, index) => {
@@ -173,7 +228,7 @@ const DrawingGrid = ({input}) => {
             if (isActive) {
                 isDrawing = true;
             }
-            isActive && draw();
+            isActive && window.requestAnimationFrame(draw);
         }
         if(!isActive && isDragging){
             isDragging = false;
@@ -185,12 +240,18 @@ const DrawingGrid = ({input}) => {
         if (hasLoaded) {
             mouseX = e.clientX - canvasRef.current.getBoundingClientRect().left;
             mouseY = e.clientY - canvasRef.current.getBoundingClientRect().top;
+
+            setPosition([mouseX, mouseY]);
+
+            calcLineIntersect();
+
+            //intersectedPoints.length > 0 && console.log("MOUSE INTERSECTS AT : ", intersectedPoints);
             
-            (isDrawing && isActive) && draw();
+            (isDrawing && isActive) && window.requestAnimationFrame(draw);
 
             if(!isActive && isDragging){
                 existingPoints.current[draggingPointIndex] = (calcClosePoint().length > 0 && (draggingPointIndex === 0 || draggingPointIndex === existingPoints.current.length - 1)) ? calcClosePoint() : [mouseX, mouseY]
-                draw();
+                window.requestAnimationFrame(draw);
             }
         }
     }
@@ -199,6 +260,7 @@ const DrawingGrid = ({input}) => {
     const imageRef = React.useRef();
     let existingPoints = useRef([]);
     let selectedNodeIndex = useRef(null);
+    let intersectedPoints = useRef([]);
 
     useEffect(() => {
         let canvas = canvasRef.current;
@@ -221,16 +283,18 @@ const DrawingGrid = ({input}) => {
         canvas.onmouseup = onmouseup;
         canvas.onmousemove = onmousemove;
         
-        draw();
+        window.requestAnimationFrame(draw);
     }, [])
 
     return (
         <Wrapper>
-            <h5>Drawing Grid</h5>      
+            <h5>Drawing Grid</h5>  
+            <h2>X: {position[0]} Y:{position[1]}</h2>
+            <h5>Interceptors {intersectedPoints.current}</h5>    
             <canvas id="canvas" ref={canvasRef}></canvas>
             <InputWrapper>
                 <button onClick={() => onHandleReset()}>Zurücksetzen</button>  
-                <button onClick={() => onClickCalculate()}>Fläche berechnen --></button>
+                <button onClick={() => onClickCalculateArea()}>Fläche berechnen --></button>
             </InputWrapper> 
             <img 
                 alt="tracking-objects" 
@@ -246,6 +310,11 @@ const DrawingGrid = ({input}) => {
                     onDeleteNode={handleDeleteNode}
                     onCloseMenu={() => setShowContextMenu(false)}
                 />
+            }
+            { res &&
+                <div>
+                    <h2>Ergebnis: {res}</h2>
+                </div>
             }
         </Wrapper>
     )
