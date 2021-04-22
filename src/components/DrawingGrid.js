@@ -80,8 +80,11 @@ const DrawingGrid = ({input}) => {
             yIntercept = nPoint && (point[1] - slope * point[0]);
             calculatedY = mouseX * slope + yIntercept
 
-            if(nPoint !== null && calcCoordDiff(nPoint, point)){
-                if (Math.abs(calculatedY - mouseY) <= 10) {
+            let isNotOnPointX = nPoint && ((Math.abs(mouseX - point[0]) > nodeButtonRadius) && (Math.abs(mouseX - nPoint[0]) > nodeButtonRadius));
+            let isNotOnPointY = nPoint && ((Math.abs(mouseY - point[1]) > nodeButtonRadius) && (Math.abs(mouseY - nPoint[1]) > nodeButtonRadius));
+
+            if(nPoint !== null && calcCoordDiff(nPoint, point) && (isNotOnPointX && isNotOnPointY) ){
+                if (Math.abs(calculatedY - mouseY) <= 20) {
                     lineIntersect = true;
                     intersectedPoints.current = [point, nPoint];
                     window.requestAnimationFrame(draw);
@@ -92,6 +95,14 @@ const DrawingGrid = ({input}) => {
         return lineIntersect;
     }
 
+    const addPointOnLine = () => {
+        let indexOfFirstPoint = existingPoints.current.indexOf(intersectedPoints.current[0]);
+        existingPoints.current.splice(indexOfFirstPoint+1, 0, [mouseX, mouseY]);
+        pointCreated = true;
+        console.log(existingPoints.current)
+        window.requestAnimationFrame(draw);
+    }
+
     let canvas = null;
     let hasLoaded = false;
     
@@ -100,6 +111,7 @@ const DrawingGrid = ({input}) => {
     let isDrawing = false;
     let isDragging = false;
     let draggingPointIndex = null;
+    let pointCreated = false;
     let isActive = true;
     const nodeButtonRadius = 5;
 
@@ -110,6 +122,7 @@ const DrawingGrid = ({input}) => {
     let img = document.getElementById("image");
     
     function draw() {
+        pointCreated = false;
         let ctx = canvasRef.current.getContext("2d");
         canvas = canvasRef
         let canvasHeight = canvas.height;
@@ -267,15 +280,16 @@ const DrawingGrid = ({input}) => {
         canvas.addEventListener('contextmenu', function(event) {
             event.preventDefault();
 
+            intersectedPoints.current.length > 0 && addPointOnLine();
+
             existingPoints.current.forEach((point) => {
-                if( Math.abs(mouseX - point[0]) <= nodeButtonRadius && Math.abs(mouseY - point[1]) <= nodeButtonRadius ){
+                if( (Math.abs(mouseX - point[0]) <= nodeButtonRadius && Math.abs(mouseY - point[1]) <= nodeButtonRadius) && !pointCreated ){
                     selectedNodeIndex.current = existingPoints.current.indexOf(point)
                     console.log("SHOW CONTEXT MENU OF NODE: ", selectedNodeIndex.current)
                     setShowContextMenu(true);
                     setMenuPosition(point);
                 }
             })
-
         });
         canvas.width = 1280;
         canvas.height = 622;
