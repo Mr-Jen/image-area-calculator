@@ -6,6 +6,21 @@ const Wrapper = styled.div`
     flex-direction: column;
     align-items: center;
 `
+const CanvasWrapper = styled.div`
+    width: 1200;
+    height: 600;
+    position: relative;
+    margin-right: 500%;
+    margin-top: 100px;
+`
+
+const Canvas = styled.canvas`
+    position: absolute;
+    top: 0;
+    left: 0;
+    border: 1px solid black;
+    border-radius: 10px;
+`
 
 const InputWrapper = styled.div`
     display: flex;
@@ -14,9 +29,9 @@ const InputWrapper = styled.div`
 
 const ReferenceGrid = ({onClickContinue, onChangeInput, onChangeRef}) => {
 
-    var canvas = null;
     var bounds = null;
     var ctx = null;
+    let drawingCanvas = null;
     var hasLoaded = false;
     
     var startX = 0;
@@ -27,43 +42,20 @@ const ReferenceGrid = ({onClickContinue, onChangeInput, onChangeRef}) => {
     let inputLine = {}
     
     function draw() {
-
-        let canvas = document.getElementById("canvas");
-        let canvasHeight = canvas.height;
-        let canvasWidth = canvas.width;
-        ctx.fillStyle = "white";
-        ctx.fillRect(0,0,canvasWidth,canvasHeight);
+        
+        let drawingCanvas = drawingCanvasRef.current;
+        let ctx = drawingCanvas.getContext("2d");
+        let canvasHeight = 600;
+        let canvasWidth = 1200;
+        //ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
+        ctx.strokeStyle = "grey";
+        ctx.strokeWidth = .1;
+        ctx.strokeRect(0,0,canvasWidth,canvasHeight);
         
         ctx.strokeStyle = "green";
         ctx.lineWidth = 2;
 
-        //let img = new Image;
-        let img = document.getElementById("image");
-        ctx.drawImage(img, 0, 0);
-        //img.src = "/assets/rect-test-area.jpg"
-
         ctx.beginPath();
-
-        /*for (let i = 0; i <= 10; i++){
-            ctx.moveTo(0,(canvasHeight/10) * i);
-            ctx.lineTo(canvasWidth,(canvasHeight/10) * i)
-            ctx.stroke();
-
-            ctx.moveTo((canvasWidth/10) * i,0);
-            ctx.lineTo((canvasWidth/10) * i,canvasHeight)
-            ctx.stroke();
-        }
-
-        ctx.beginPath();
-
-        ctx.moveTo(0, canvasHeight/2);
-        ctx.lineTo(canvasWidth, canvasHeight/2)
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 4;
-
-        ctx.moveTo(canvasWidth/2, 0);
-        ctx.lineTo(canvasWidth/2, canvasHeight)
-        ctx.stroke();*/
 
         hasLoaded = true;
         
@@ -71,6 +63,9 @@ const ReferenceGrid = ({onClickContinue, onChangeInput, onChangeRef}) => {
         ctx.moveTo(line.startX,line.startY);
         ctx.lineTo(line.endX,line.endY);
         ctx.stroke();
+
+
+        isDrawing && ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
         if (isDrawing) {
             ctx.strokeStyle = "darkred";
@@ -123,32 +118,81 @@ const ReferenceGrid = ({onClickContinue, onChangeInput, onChangeRef}) => {
                 draw();
             }
         }
-    }    
-  
-    window.onload = function() {
-        canvas = document.getElementById("canvas");
-        let img = document.getElementById("image");
-        canvas.width = img.width;
-        canvas.height = img.height;
-        canvas.onmousedown = onReferenceDown;
-        canvas.onmouseup = onReferenceUp;
-        canvas.onmousemove = onReferenceMove;
+    } 
+
+    const loadDrawingCanvas = () => {
+        drawingCanvas = drawingCanvasRef.current;
+        drawingCanvas.width = 1200;
+        drawingCanvas.height = 600;
+        drawingCanvas.onmousedown = onReferenceDown;
+        drawingCanvas.onmouseup = onReferenceUp;
+        drawingCanvas.onmousemove = onReferenceMove;
         
-        bounds = canvas.getBoundingClientRect();
-        ctx = canvas.getContext("2d");
+        bounds = drawingCanvas.getBoundingClientRect();
+        ctx = drawingCanvas.getContext("2d");
         
         draw();
+    }
+  
+    window.onload = function() {
+        let bgCanvas = bgCanvasRef.current;
+        bgCanvas.width = 1200;
+        bgCanvas.height = 600;
+        bounds = bgCanvas.getBoundingClientRect();
+        ctx = bgCanvas.getContext("2d");
+        ctx.fillStyle = "white";
+        ctx.fillRect(0,0,bgCanvas.width,bgCanvas.height);
+        bgCanvas && console.log("canvas loaded")
+    }
+
+    const drawBg = () => {
+        let cs = bgCanvasRef.current;
+        console.log("DRAWING BG")
+        let bgImage = new Image();        
+        bgImage.src = URL.createObjectURL(inputFile);
+        //bgImage.src = "http://i.imgur.com/yf6d9SX.jpg";
+        bgImage.onload = function (){            
+            cs.getContext("2d").drawImage(bgImage, 0, 0)
+        }
+    }
+
+    const onChangeInputFile = (e) => {
+        if (e.target.files){
+            console.log("FILE UPLOADED: ", e.target.files[0])
+            setInputFile(e.target.files[0]);
+        }
+        /*var img = new Image();
+        img.onload = draw_img;
+        img.onerror = failed;
+        img.src = URL.createObjectURL(e.target.files[0])*/
+    }
+
+    function failed() {
+        console.error("The provided file couldn't be loaded as an Image media");
+    }
+    function succeeded() {
+        console.log("Image uploaded!")
     }
 
     const [inputLength, setInputLength] = useState(0);
     const [inputReference, setInputReference] = useState({});
+    const [inputFile, setInputFile] = useState();
+    const drawingCanvasRef = React.useRef();
+    const bgCanvasRef = React.useRef();
 
     const onHandleInputChange = (e) => {
         setInputLength(e.target.value)
     }
 
+    useEffect(() => {        
+        console.log("FILE UNKNOWN: ", inputFile)
+        if(inputFile){
+            drawBg();
+            loadDrawingCanvas();
+        }
+    }, [inputFile])
+
     useEffect(() => {
-        //console.log("STATE UPDATED", inputLength)
         onChangeInput(inputLength)
     }, [inputLength, onChangeInput])
 
@@ -159,13 +203,16 @@ const ReferenceGrid = ({onClickContinue, onChangeInput, onChangeRef}) => {
 
     return (
         <Wrapper>
-            <h5>Reference Grid</h5>
-            <canvas id="canvas"></canvas>
+            <h5>Reference Grid</h5>            
+            <input onChange={(e) => onChangeInputFile(e)} type="file" id="input-img" accept=".png, .jpg, .jpeg" id="file_input"></input>
+            <CanvasWrapper>
+                <Canvas ref={bgCanvasRef} id="bgCanvas"></Canvas>
+                <Canvas hidden={!inputFile} ref={drawingCanvasRef} id="drawingCanvas"></Canvas>
+            </CanvasWrapper>
             <InputWrapper>
                 <input id="input" type="number" placeholder="Länge in Metern" value={inputLength} onChange={(e) => onHandleInputChange(e)}></input>
                 <button onClick={() => onClickContinue()}>Weiter --></button>  
             </InputWrapper>
-            <img alt="tracking-objects" hidden={true} id="image" src="/assets/rect-test-area.jpg"></img>
         </Wrapper>
     )
 }
