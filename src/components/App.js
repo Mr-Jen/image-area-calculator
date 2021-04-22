@@ -13,32 +13,23 @@ const Wrapper = styled.div`
 
 const App = () => {
 
-  const handleContentChange = () => {
-    setShowReferenceGrid(false)
-  }
-
-  const handleInputLengthChange = (length) => {
-    setInputLength(length)
-  }
-
-  const handleInputRefChange = (ref) => {
-    setInputRef(ref)
+  const handleSubmit = (data) => {
+    console.log("DATA FROM REFERENCE: ", data);
+    setInputData(data);
+    setShowReferenceGrid(false);
   }
 
   const [showReferenceGrid, setShowReferenceGrid] = useState(true);
-  const [inputLength, setInputLength] = useState(0);
-  const [inputRef, setInputRef] = useState({});
+  const [inputData, setInputData] = useState({});
 
   return (
     <Wrapper className="App">
       <h2 style={{margin: "auto"}}>Area Calculation</h2>
       {showReferenceGrid ? 
         <ReferenceGrid 
-          onClickContinue={handleContentChange}
-          onChangeInput={(length) => handleInputLengthChange(length)}
-          onChangeRef={(ref) => handleInputRefChange(ref)}
+          onHandleSubmit={(data) => handleSubmit(data)}
         /> : 
-        <DrawingGrid input={[inputLength, inputRef]}/>}
+        <DrawingGrid inputData={inputData}/>}
         <button onClick={() => setShowReferenceGrid(!showReferenceGrid)}>Switch</button>
     </Wrapper>
   );

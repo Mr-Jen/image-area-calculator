@@ -7,11 +7,10 @@ const Wrapper = styled.div`
     align-items: center;
 `
 const CanvasWrapper = styled.div`
-    width: 1200;
-    height: 600;
+    width: 1200px;
+    height: 600px;
     position: relative;
-    margin-right: 500%;
-    margin-top: 100px;
+    margin: 10px;
 `
 
 const Canvas = styled.canvas`
@@ -22,12 +21,14 @@ const Canvas = styled.canvas`
     border-radius: 10px;
 `
 
-const InputWrapper = styled.div`
+/*const InputWrapper = styled.div`
     display: flex;
     margin-top: 20px;
+`*/
+const InputWrapper = styled.div`
 `
 
-const ReferenceGrid = ({onClickContinue, onChangeInput, onChangeRef}) => {
+const ReferenceGrid = ({onHandleSubmit}) => {
 
     var bounds = null;
     var ctx = null;
@@ -47,12 +48,8 @@ const ReferenceGrid = ({onClickContinue, onChangeInput, onChangeRef}) => {
         let ctx = drawingCanvas.getContext("2d");
         let canvasHeight = 600;
         let canvasWidth = 1200;
-        //ctx.fillStyle = "rgba(255, 255, 255, 0.5)";
-        ctx.strokeStyle = "grey";
-        ctx.strokeWidth = .1;
-        ctx.strokeRect(0,0,canvasWidth,canvasHeight);
         
-        ctx.strokeStyle = "green";
+        ctx.strokeStyle = "orange";
         ctx.lineWidth = 2;
 
         ctx.beginPath();
@@ -154,6 +151,7 @@ const ReferenceGrid = ({onClickContinue, onChangeInput, onChangeRef}) => {
         bgImage.onload = function (){            
             cs.getContext("2d").drawImage(bgImage, 0, 0)
         }
+        bgImage.onerror = failed;
     }
 
     const onChangeInputFile = (e) => {
@@ -161,17 +159,10 @@ const ReferenceGrid = ({onClickContinue, onChangeInput, onChangeRef}) => {
             console.log("FILE UPLOADED: ", e.target.files[0])
             setInputFile(e.target.files[0]);
         }
-        /*var img = new Image();
-        img.onload = draw_img;
-        img.onerror = failed;
-        img.src = URL.createObjectURL(e.target.files[0])*/
     }
 
     function failed() {
         console.error("The provided file couldn't be loaded as an Image media");
-    }
-    function succeeded() {
-        console.log("Image uploaded!")
     }
 
     const [inputLength, setInputLength] = useState(0);
@@ -184,6 +175,19 @@ const ReferenceGrid = ({onClickContinue, onChangeInput, onChangeRef}) => {
         setInputLength(e.target.value)
     }
 
+    const onSubmit = () => {
+        if (inputFile && (Object.keys(inputReference).length !== 0 && inputReference.constructor === Object) && inputLength){
+            console.log("IMG, REF, LÄNGE: ", inputFile, inputReference, inputLength);
+            onHandleSubmit({
+                "image": inputFile,
+                "inputRef": inputReference,
+                "inputLength": inputLength
+            })
+        } else {
+            alert("BITTE ERST ALLE INFORMATIONEN AUSFÜLLEN")
+        }
+    }
+
     useEffect(() => {        
         console.log("FILE UNKNOWN: ", inputFile)
         if(inputFile){
@@ -192,29 +196,20 @@ const ReferenceGrid = ({onClickContinue, onChangeInput, onChangeRef}) => {
         }
     }, [inputFile])
 
-    useEffect(() => {
-        onChangeInput(inputLength)
-    }, [inputLength, onChangeInput])
-
-    useEffect(() => {
-        console.log("INPUT REF: ", inputReference)
-        onChangeRef(inputReference)
-    }, [inputReference, onChangeRef])
-
     return (
         <Wrapper>
             <h5>Reference Grid</h5>            
-            <input onChange={(e) => onChangeInputFile(e)} type="file" id="input-img" accept=".png, .jpg, .jpeg" id="file_input"></input>
+            <input onChange={(e) => onChangeInputFile(e)} type="file" id="input-img" accept=".png, .jpg, .jpeg"></input>
             <CanvasWrapper>
                 <Canvas ref={bgCanvasRef} id="bgCanvas"></Canvas>
                 <Canvas hidden={!inputFile} ref={drawingCanvasRef} id="drawingCanvas"></Canvas>
             </CanvasWrapper>
             <InputWrapper>
                 <input id="input" type="number" placeholder="Länge in Metern" value={inputLength} onChange={(e) => onHandleInputChange(e)}></input>
-                <button onClick={() => onClickContinue()}>Weiter --></button>  
+                <button onClick={() => onSubmit()}>Weiter --></button>  
             </InputWrapper>
         </Wrapper>
     )
 }
 
-export default ReferenceGrid
+export default ReferenceGrid//

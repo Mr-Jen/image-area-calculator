@@ -14,19 +14,20 @@ const InputWrapper = styled.div`
     margin-top: 20px;
 `
 
-const DrawingGrid = ({input}) => {
+const DrawingGrid = ({inputData}) => {
 
     function onClickCalculateArea (){
         let coordinates = [];
         let scaledCoordinates = [];
 
-        const ref = input[1]
+        const ref = inputData["inputRef"]
+        const length = inputData["inputLength"]
         const a = ref["endX"] - ref["startX"]
         const b = ref["endY"] - ref["startY"]
         const refLength = Math.sqrt((a*a) + (b*b))
 
         console.log("LÄNGE: ", refLength)
-        const scale = input[0] / refLength
+        const scale = length / refLength
         
         existingPoints.current.forEach((point) => {
             coordinates.push(point[0], point[1])
