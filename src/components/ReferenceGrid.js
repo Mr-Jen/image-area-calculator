@@ -144,7 +144,6 @@ const ReferenceGrid = ({onHandleSubmit}) => {
 
     const drawBg = () => {
         let cs = bgCanvasRef.current;
-        console.log("DRAWING BG")
         let bgImage = new Image();        
         bgImage.src = URL.createObjectURL(inputFile);
         //bgImage.src = "http://i.imgur.com/yf6d9SX.jpg";
@@ -168,6 +167,7 @@ const ReferenceGrid = ({onHandleSubmit}) => {
     const [inputLength, setInputLength] = useState(0);
     const [inputReference, setInputReference] = useState({});
     const [inputFile, setInputFile] = useState();
+    const [editImage, setEditImage] = useState(false);
     const drawingCanvasRef = React.useRef();
     const bgCanvasRef = React.useRef();
 
@@ -189,20 +189,22 @@ const ReferenceGrid = ({onHandleSubmit}) => {
     }
 
     useEffect(() => {        
-        console.log("FILE UNKNOWN: ", inputFile)
         if(inputFile){
             drawBg();
             loadDrawingCanvas();
         }
     }, [inputFile])
 
+    console.log("INPUT FILE AND EDIT IMAGE: ", inputFile, editImage)
+
     return (
         <Wrapper>
             <h5>Reference Grid</h5>            
             <input onChange={(e) => onChangeInputFile(e)} type="file" id="input-img" accept=".png, .jpg, .jpeg"></input>
+            <button hidden={!inputFile} onClick={() => setEditImage(!editImage)}>{editImage ? "Bild sichern" : "Bild bearbeiten"}</button>
             <CanvasWrapper>
                 <Canvas ref={bgCanvasRef} id="bgCanvas"></Canvas>
-                <Canvas hidden={!inputFile} ref={drawingCanvasRef} id="drawingCanvas"></Canvas>
+                <Canvas hidden={!inputFile || editImage} ref={drawingCanvasRef} id="drawingCanvas"></Canvas>
             </CanvasWrapper>
             <InputWrapper>
                 <input id="input" type="number" placeholder="Länge in Metern" value={inputLength} onChange={(e) => onHandleInputChange(e)}></input>

@@ -221,7 +221,7 @@ const DrawingGrid = ({inputData}) => {
         let closePoint = [];
         existingPoints.current.forEach((point) => {
             if( Math.abs(mouseX - point[0]) <= 2 * nodeButtonRadius && Math.abs(mouseY - point[1]) <= 2 * nodeButtonRadius ){
-                closePoint = point
+                closePoint = point;
             }
         })
         return closePoint
@@ -275,11 +275,27 @@ const DrawingGrid = ({inputData}) => {
 
             calcLineIntersect();
 
+            let closePoint = calcClosePoint();
+
+            if(isActive){
+                drawingCanvasRef.current.style.cursor = "copy";
+            }
+            else {
+                drawingCanvasRef.current.style.cursor = closePoint.length > 0 ? "grab" : "default";
+            }
+
+
             (isDrawing && isActive) && window.requestAnimationFrame(draw);
 
             if(!isActive && isDragging){
-                existingPoints.current[draggingPointIndex] = (calcClosePoint().length > 0 && (draggingPointIndex === 0 || draggingPointIndex === existingPoints.current.length - 1)) ? calcClosePoint() : [mouseX, mouseY]
-                window.requestAnimationFrame(draw);
+                if(closePoint.length > 0 && (draggingPointIndex === 0 || draggingPointIndex === existingPoints.current.length - 1)){
+                    existingPoints.current[draggingPointIndex] = closePoint;
+                    window.requestAnimationFrame(draw);
+                }
+                else {
+                    existingPoints.current[draggingPointIndex] = [mouseX, mouseY];
+                    window.requestAnimationFrame(draw);
+                }
             }
         }
     }
@@ -326,6 +342,9 @@ const DrawingGrid = ({inputData}) => {
         let drawingCanvas = drawingCanvasRef.current;
         drawingCanvas.addEventListener('contextmenu', function(event) {
             event.preventDefault();
+
+            isDragging = true;
+            draggingPointIndex = null;
 
             intersectedPoints.current.length > 0 && addPointOnLine();
 
