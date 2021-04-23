@@ -9,6 +9,21 @@ const Wrapper = styled.div`
     align-items: center;
 `
 
+const CanvasWrapper = styled.div`
+    width: 1200px;
+    height: 600px;
+    position: relative;
+    margin: 10px;
+`
+
+const Canvas = styled.canvas`
+    position: absolute;
+    top: 0;
+    left: 0;
+    border: 1px solid black;
+    border-radius: 10px;
+`
+
 const InputWrapper = styled.div`
     display: flex;
     margin-top: 20px;
@@ -104,8 +119,10 @@ const DrawingGrid = ({inputData}) => {
         window.requestAnimationFrame(draw);
     }
 
-    let canvas = null;
+    let drawingCanvas = null;
     let hasLoaded = false;
+    let bounds = null;
+    let ctx = null;
     
     let mouseX = 0;
     let mouseY = 0;
@@ -120,18 +137,16 @@ const DrawingGrid = ({inputData}) => {
     const [showContextMenu, setShowContextMenu] = useState(false);
     const [menuPosition, setMenuPosition] = useState([]);
     const [res, setRes] = useState(null);
-    let img = document.getElementById("image");
     
     function draw() {
         pointCreated = false;
-        let ctx = canvasRef.current.getContext("2d");
-        canvas = canvasRef
-        let canvasHeight = canvas.height;
-        let canvasWidth = canvas.width;
-        ctx.fillStyle = "white";
-        ctx.fillRect(0,0,canvasWidth,canvasHeight);
+        drawingCanvas = drawingCanvasRef.current;
+        ctx = drawingCanvas.getContext("2d");
+        let canvasHeight = 600;
+        let canvasWidth = 1200;
 
-        ctx.drawImage(img, 0, 0);
+
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
         ctx.beginPath();
 
@@ -196,6 +211,7 @@ const DrawingGrid = ({inputData}) => {
     }
 
     const onHandleReset = () => {
+        console.log("RESETTING")
         isActive = true;
         existingPoints.current = [];
         window.requestAnimationFrame(draw);
@@ -221,7 +237,7 @@ const DrawingGrid = ({inputData}) => {
                     existingPoints.current.push(closePoint)
                     isActive = false;
                 }
-                else {
+                else {                    
                     existingPoints.current.push([mouseX, mouseY])
                 }
             }
@@ -241,26 +257,24 @@ const DrawingGrid = ({inputData}) => {
         if (hasLoaded && e.button === 0) {
             if (isActive) {
                 isDrawing = true;
+                window.requestAnimationFrame(draw);
             }
-            isActive && window.requestAnimationFrame(draw);
-        }
-        if(!isActive && isDragging){
-            isDragging = false;
-            draggingPointIndex = null;
+            if(!isActive && isDragging){
+                isDragging = false;
+                draggingPointIndex = null;
+            }
         }
     }
     
     function onmousemove(e) {
         if (hasLoaded) {
-            mouseX = e.clientX - canvasRef.current.getBoundingClientRect().left;
-            mouseY = e.clientY - canvasRef.current.getBoundingClientRect().top;
+            mouseX = e.clientX - bounds.left;
+            mouseY = e.clientY - bounds.top;
 
             setPosition([mouseX, mouseY]);
 
             calcLineIntersect();
 
-            //intersectedPoints.length > 0 && console.log("MOUSE INTERSECTS AT : ", intersectedPoints);
-            
             (isDrawing && isActive) && window.requestAnimationFrame(draw);
 
             if(!isActive && isDragging){
@@ -270,15 +284,47 @@ const DrawingGrid = ({inputData}) => {
         }
     }
 
-    const canvasRef = React.useRef();
-    const imageRef = React.useRef();
+    const drawingCanvasRef = React.useRef();
+    const bgCanvasRef = React.useRef();
     let existingPoints = useRef([]);
     let selectedNodeIndex = useRef(null);
     let intersectedPoints = useRef([]);
 
+    const drawBg = () => {
+        let cs = bgCanvasRef.current;
+        cs.width = 1200;
+        cs.height = 600;
+        console.log("DRAWING BG")
+        let bgImage = new Image();        
+        bgImage.src = URL.createObjectURL(inputData["image"]);
+        //bgImage.src = "http://i.imgur.com/yf6d9SX.jpg";
+        bgImage.onload = function (){            
+            cs.getContext("2d").drawImage(bgImage, 0, 0)
+        }
+        bgImage.onerror = failed;
+    }
+
+    function failed() {
+        console.error("The provided file couldn't be loaded as an Image media");
+    }
+
     useEffect(() => {
-        let canvas = canvasRef.current;
-        canvas.addEventListener('contextmenu', function(event) {
+        //drawBg();
+
+        let bgCanvas = bgCanvasRef.current;
+        bgCanvas.width = 1200;
+        bgCanvas.height = 600;
+        console.log("DRAWING BG")
+        let bgImage = new Image();        
+        bgImage.src = URL.createObjectURL(inputData["image"]);
+        //bgImage.src = "http://i.imgur.com/yf6d9SX.jpg";
+        bgImage.onload = function (){            
+            bgCanvas.getContext("2d").drawImage(bgImage, 0, 0)
+        }
+        bgImage.onerror = failed;
+
+        let drawingCanvas = drawingCanvasRef.current;
+        drawingCanvas.addEventListener('contextmenu', function(event) {
             event.preventDefault();
 
             intersectedPoints.current.length > 0 && addPointOnLine();
@@ -292,11 +338,14 @@ const DrawingGrid = ({inputData}) => {
                 }
             })
         });
-        canvas.width = 1280;
-        canvas.height = 622;
-        canvas.onmousedown = onmousedown;
-        canvas.onmouseup = onmouseup;
-        canvas.onmousemove = onmousemove;
+        drawingCanvas.width = 1200;
+        drawingCanvas.height = 600;
+        bounds = drawingCanvas.getBoundingClientRect();
+        ctx = drawingCanvas.getContext("2d");
+
+        drawingCanvas.onmousedown = onmousedown;
+        drawingCanvas.onmouseup = onmouseup;
+        drawingCanvas.onmousemove = onmousemove;
         
         window.requestAnimationFrame(draw);
     }, [])
@@ -305,19 +354,15 @@ const DrawingGrid = ({inputData}) => {
         <Wrapper>
             <h5>Drawing Grid</h5>  
             <h2>X: {position[0]} Y:{position[1]}</h2>
-            <h5>Interceptors {intersectedPoints.current}</h5>    
-            <canvas id="canvas" ref={canvasRef}></canvas>
+            <h5>Interceptors {intersectedPoints.current}</h5>   
+            <CanvasWrapper>
+                <Canvas ref={bgCanvasRef} id="bgCanvas"></Canvas>
+                <Canvas ref={drawingCanvasRef} id="drawingCanvas"></Canvas>
+            </CanvasWrapper>
             <InputWrapper>
                 <button onClick={() => onHandleReset()}>Zurücksetzen</button>  
                 <button onClick={() => onClickCalculateArea()}>Fläche berechnen --></button>
             </InputWrapper> 
-            <img 
-                alt="tracking-objects" 
-                hidden={true} id="image" 
-                src="/assets/rect-test-area.jpg"
-                ref={imageRef}
-            >
-            </img>
             {showContextMenu && 
                 <ContextMenu 
                     marginLeft={menuPosition[0]} 
