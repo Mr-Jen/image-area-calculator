@@ -74,10 +74,13 @@ const DrawingGrid = ({inputData}) => {
     const calcCoordDiff = (nPoint, point) => {
         if (nPoint[0] >= point[0] && nPoint[1] >= point[1]){
             return ((nPoint[0] >= mouseX && point[0] <= mouseX) && (nPoint[1] >= mouseY && point[1] <= mouseY)) && true;
+            
         } else if (nPoint[0] >= point[0] && nPoint[1] <= point[1]){
             return ((nPoint[0] >= mouseX && point[0] <= mouseX) && (nPoint[1] <= mouseY && point[1] >= mouseY)) && true;
+
         } else if (nPoint[0] <= point[0] && nPoint[1] >= point[1]){
-            return ((nPoint[0] <= mouseX && point[0] >= mouseX) && (nPoint[1] >= mouseY && point[1] <= mouseY)) && true;  
+            return ((nPoint[0] <= mouseX && point[0] >= mouseX) && (nPoint[1] >= mouseY && point[1] <= mouseY)) && true;
+              
         } else if (nPoint[0] <= point[0] && nPoint[1] <= point[1]){
             return ((nPoint[0] <= mouseX && point[0] >= mouseX) && (nPoint[1] <= mouseY && point[1] >= mouseY)) && true;      
         }
@@ -99,7 +102,15 @@ const DrawingGrid = ({inputData}) => {
             let isNotOnPointX = nPoint && ((Math.abs(mouseX - point[0]) > nodeButtonRadius) && (Math.abs(mouseX - nPoint[0]) > nodeButtonRadius));
             let isNotOnPointY = nPoint && ((Math.abs(mouseY - point[1]) > nodeButtonRadius) && (Math.abs(mouseY - nPoint[1]) > nodeButtonRadius));
 
+            //nPoint && console.log("CROSSING LINE: ", calcCoordDiff(nPoint, point) ? true : false);
+
             if(nPoint !== null && calcCoordDiff(nPoint, point) && (isNotOnPointX && isNotOnPointY) ){
+                //console.log("CROSSING LINE: ", calcCoordDiff(nPoint, point) ? true : false);
+                console.group();
+                console.log("SLOPE: ", slope);
+                console.log("Calculated Y: ", calculatedY, "MouseY: ", mouseY);
+                console.log("Y DIFFERENCE: ", Math.abs(calculatedY - mouseY), "BETWEEN POINTS: ", index, index+1);
+                console.groupEnd();
                 if (Math.abs(calculatedY - mouseY) <= 20) {
                     lineIntersect = true;
                     intersectedPoints.current = [point, nPoint];

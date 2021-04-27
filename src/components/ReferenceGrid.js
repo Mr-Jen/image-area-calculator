@@ -41,6 +41,8 @@ const ReferenceGrid = ({onHandleSubmit}) => {
     var mouseY = 0;
     var isDrawing = false;
     let inputLine = {}
+    let isDragging = false;
+    let dragStartPosition = [];
     
     function draw() {
         
@@ -117,6 +119,44 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         }
     } 
 
+    function onBgDown (e){
+        let cs = bgCanvasRef.current;
+        bounds = cs.getBoundingClientRect();
+
+        isDragging = true;
+        dragStartPosition = [e.clientX - bounds.left, e.clientY - bounds.top]
+    }
+
+    function onBgUp (e){
+        let cs = bgCanvasRef.current;
+        bounds = cs.getBoundingClientRect();
+
+        mouseX = e.clientX - bounds.left;
+        mouseY = e.clientY - bounds.top;
+
+        isDragging = false;
+        //imagePosition.current = [mouseX - dragStartPosition[0], mouseY - dragStartPosition[1]];
+        dragStartPosition = [];
+        //console.log("IMAGE POSTION ON MOUSE UP: ", imagePosition.current);
+    }
+
+    function onBgMove (e){
+        let cs = bgCanvasRef.current;
+        bounds = cs.getBoundingClientRect();
+
+        mouseX = e.clientX - bounds.left;
+        mouseY = e.clientY - bounds.top;
+
+        if(isDragging){
+            //console.log("DRAGGING NOW");
+            //imagePosition.current = [mouseX, mouseY];
+            console.log("OLD POSITION: ", imagePosition.current);
+            imagePosition.current = [mouseX - dragStartPosition[0], mouseY - dragStartPosition[1]];
+            console.log("NEW POSITION: ", imagePosition.current);
+            window.requestAnimationFrame(drawBg);
+        }
+    }
+
     const loadDrawingCanvas = () => {
         drawingCanvas = drawingCanvasRef.current;
         drawingCanvas.width = 1200;
@@ -135,6 +175,11 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         let bgCanvas = bgCanvasRef.current;
         bgCanvas.width = 1200;
         bgCanvas.height = 600;
+
+        bgCanvas.onmousedown = onBgDown;
+        bgCanvas.onmouseup = onBgUp;
+        bgCanvas.onmousemove = onBgMove;
+
         bounds = bgCanvas.getBoundingClientRect();
         ctx = bgCanvas.getContext("2d");
         ctx.fillStyle = "white";
@@ -144,11 +189,22 @@ const ReferenceGrid = ({onHandleSubmit}) => {
 
     const drawBg = () => {
         let cs = bgCanvasRef.current;
-        let bgImage = new Image();        
-        bgImage.src = URL.createObjectURL(inputFile);
+        let bgImage = new Image(); 
+
+        console.log("CURRENT IMAGE POSITION: ", imagePosition.current);
+
+        cs.getContext("2d").clearRect(0, 0, cs.width, cs.height);
+
+        //console.log("INPUT FILE: ", inputFile);
+        //console.log("FILE REF: ", imageRef.current);
+        
+        bgImage.src = imageRef.current ? URL.createObjectURL(imageRef.current) : URL.createObjectURL(inputFile);
+        //bgImage.srcObject = file;
+        //bgImage.srcObject = URL.createObjectURL(inputFile);
         //bgImage.src = "http://i.imgur.com/yf6d9SX.jpg";
         bgImage.onload = function (){            
-            cs.getContext("2d").drawImage(bgImage, 0, 0)
+            //cs.getContext("2d").drawImage(bgImage, imagePosition.current[0], imagePosition.current[1])
+            cs.getContext("2d").drawImage(bgImage, imagePosition.current[0], imagePosition.current[1]);
         }
         bgImage.onerror = failed;
     }
@@ -167,9 +223,11 @@ const ReferenceGrid = ({onHandleSubmit}) => {
     const [inputLength, setInputLength] = useState(0);
     const [inputReference, setInputReference] = useState({});
     const [inputFile, setInputFile] = useState();
+    const imageRef = React.useRef();
     const [editImage, setEditImage] = useState(false);
     const drawingCanvasRef = React.useRef();
     const bgCanvasRef = React.useRef();
+    const imagePosition = React.useRef([]);
 
     const onHandleInputChange = (e) => {
         setInputLength(e.target.value)
@@ -188,14 +246,16 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         }
     }
 
-    useEffect(() => {        
+    useEffect(() => { 
+        //console.log("INPUT CHANGED") 
+        imageRef.current = inputFile;     
         if(inputFile){
+            console.log("CHANGING IMAGE POSITION IN USEFFFECT")
+            imagePosition.current = [0,0];
             drawBg();
             loadDrawingCanvas();
         }
     }, [inputFile])
-
-    console.log("INPUT FILE AND EDIT IMAGE: ", inputFile, editImage)
 
     return (
         <Wrapper>
@@ -203,7 +263,7 @@ const ReferenceGrid = ({onHandleSubmit}) => {
             <input onChange={(e) => onChangeInputFile(e)} type="file" id="input-img" accept=".png, .jpg, .jpeg"></input>
             <button hidden={!inputFile} onClick={() => setEditImage(!editImage)}>{editImage ? "Bild sichern" : "Bild bearbeiten"}</button>
             <CanvasWrapper>
-                <Canvas ref={bgCanvasRef} id="bgCanvas"></Canvas>
+                <Canvas ref={bgCanvasRef} style={{cursor: editImage && "all-scroll"}} id="bgCanvas"></Canvas>
                 <Canvas hidden={!inputFile || editImage} ref={drawingCanvasRef} id="drawingCanvas"></Canvas>
             </CanvasWrapper>
             <InputWrapper>
