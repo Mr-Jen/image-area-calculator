@@ -124,7 +124,7 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         bounds = cs.getBoundingClientRect();
 
         isDragging = true;
-        dragStartPosition = [e.clientX - bounds.left, e.clientY - bounds.top]
+        dragStartPosition = [e.clientX - bounds.left - imagePosition.current[0], e.clientY - bounds.top - imagePosition.current[1]]
     }
 
     function onBgUp (e){
@@ -135,13 +135,11 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         mouseY = e.clientY - bounds.top;
 
         isDragging = false;
-        //imagePosition.current = [mouseX - dragStartPosition[0], mouseY - dragStartPosition[1]];
         dragStartPosition = [];
-        //console.log("IMAGE POSTION ON MOUSE UP: ", imagePosition.current);
     }
 
     function onBgMove (e){
-        let cs = bgCanvasRef.current;
+        let cs = bgCanvasRef.current;    
         bounds = cs.getBoundingClientRect();
 
         mouseX = e.clientX - bounds.left;
@@ -153,8 +151,12 @@ const ReferenceGrid = ({onHandleSubmit}) => {
             console.log("OLD POSITION: ", imagePosition.current);
             imagePosition.current = [mouseX - dragStartPosition[0], mouseY - dragStartPosition[1]];
             console.log("NEW POSITION: ", imagePosition.current);
-            window.requestAnimationFrame(drawBg);
+            window.requestAnimationFrame(drawBgImage);
         }
+    }
+
+    function onBgOut (e){
+        isDragging = false;
     }
 
     const loadDrawingCanvas = () => {
@@ -179,6 +181,7 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         bgCanvas.onmousedown = onBgDown;
         bgCanvas.onmouseup = onBgUp;
         bgCanvas.onmousemove = onBgMove;
+        bgCanvas.onmouseout = onBgOut;
 
         bounds = bgCanvas.getBoundingClientRect();
         ctx = bgCanvas.getContext("2d");
@@ -187,23 +190,28 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         bgCanvas && console.log("canvas loaded")
     }
 
-    const loadBgCanvas = () => {
-
+    const loadImage = (path) => {
+        let bgImage = new Image();
+        let promise = new Promise((resolve, reject) => {
+          bgImage.onload = () => resolve(bgImage);
+          bgImage.onerror = reject;
+        });
+        bgImage.src = path;
+        return promise;
     }
+      
 
-    const drawBg = () => {
+    function drawBgImage() {
         let cs = bgCanvasRef.current;
         let ctx = cs.getContext("2d");
-        let bgImage = new Image(); 
-
-        console.log("CURRENT IMAGE POSITION: ", imagePosition.current);
 
         ctx.clearRect(0, 0, cs.width, cs.height);
+
+        imageObjRef.current && ctx.drawImage(imageObjRef.current, imagePosition.current[0], imagePosition.current[1]);
 
         //console.log("INPUT FILE: ", inputFile);
         //console.log("FILE REF: ", imageRef.current);
         
-        bgImage.src = imageRef.current ? URL.createObjectURL(imageRef.current) : URL.createObjectURL(inputFile);
         //bgImage.srcObject = file;
         //bgImage.srcObject = URL.createObjectURL(inputFile);
         //bgImage.src = "http://i.imgur.com/yf6d9SX.jpg";
@@ -212,7 +220,6 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         ctx.rotate( angle * Math.PI / 180 );
         ctx.translate( -(1200/2), -(600/2) );*/
 
-        console.log(cs.width, cs.height)
         
         /*
         // define a rectangle to rotate
@@ -227,10 +234,6 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         ctx.translate( -rect.x-rect.width/2, -rect.y-rect.height/2 );
         ctx.fillRect( rect.x, rect.y, rect.width, rect.height );*/
 
-        bgImage.onload = function (){            
-            //cs.getContext("2d").drawImage(bgImage, imagePosition.current[0], imagePosition.current[1])
-            ctx.drawImage(bgImage, imagePosition.current[0], imagePosition.current[1]);
-        }
 
         /*// undo #3
         ctx.translate( 1200/2, 600/2 );
@@ -239,7 +242,6 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         // undo #1
         ctx.translate( -(1200/2), 600/2 );*/
 
-        bgImage.onerror = failed;
     }
 
     const onChangeInputFile = (e) => {
@@ -262,6 +264,7 @@ const ReferenceGrid = ({onHandleSubmit}) => {
     const drawingCanvasRef = React.useRef();
     const bgCanvasRef = React.useRef();
     const imagePosition = React.useRef([]);
+    const imageObjRef = React.useRef();
 
     const onHandleInputChange = (e) => {
         setInputLength(e.target.value)
@@ -269,7 +272,7 @@ const ReferenceGrid = ({onHandleSubmit}) => {
 
     const onSubmit = () => {
         if (inputFile && (Object.keys(inputReference).length !== 0 && inputReference.constructor === Object) && inputLength){
-            console.log("IMG, REF, LÄNGE: ", inputFile, inputReference, inputLength);
+            //console.log("IMG, REF, LÄNGE: ", inputFile, inputReference, inputLength);
             onHandleSubmit({
                 "image": inputFile,
                 "inputRef": inputReference,
@@ -281,21 +284,25 @@ const ReferenceGrid = ({onHandleSubmit}) => {
     }
 
     useEffect(() => { 
-        //console.log("INPUT CHANGED") 
         imageRef.current = inputFile;     
         if(inputFile){
             console.log("CHANGING IMAGE POSITION IN USEFFFECT")
             imagePosition.current = [0,0];
-            drawBg();
-            loadDrawingCanvas();
+            let imgSrc = imageRef.current ? URL.createObjectURL(imageRef.current) : URL.createObjectURL(inputFile);
+            loadImage(imgSrc).then((image) => {
+                imageObjRef.current = image;
+                drawBgImage();
+                loadDrawingCanvas();
+            });
         }
     }, [inputFile])
 
-    useEffect(() => {
+    /*useEffect(() => {
         console.log("REDRAWN AFTER STATE SET", angle);
-        angle !== 0 && window.requestAnimationFrame(drawBg);
-    }, [angle, drawBg])
+        angle !== 0 && window.requestAnimationFrame(loadBgCanvas);
+    }, [angle, loadBgCanvas])*/
 
+    console.log("RERENDRED")
     return (
         <Wrapper>
             <h5>Reference Grid</h5>            
@@ -316,4 +323,4 @@ const ReferenceGrid = ({onHandleSubmit}) => {
     )
 }
 
-export default ReferenceGrid//
+export default ReferenceGrid

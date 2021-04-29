@@ -184,7 +184,7 @@ const DrawingGrid = ({inputData}) => {
                 ctx.beginPath();
                 ctx.moveTo(point[0], point[1])
                 nPoint && ctx.lineTo(nPoint[0], nPoint[1])
-                //ctx.strokeStyle = "blue";
+                ctx.strokeStyle = "green";
                 ctx.setLineDash([10, 10]);
                 ctx.lineWidth = 4;
                 ctx.stroke();
