@@ -30,7 +30,7 @@ const App = () => {
           onHandleSubmit={(data) => handleSubmit(data)}
         /> : 
         <DrawingGrid inputData={inputData}/>}
-        <button onClick={() => setShowReferenceGrid(!showReferenceGrid)}>Switch</button>
+        <button onClick={() => setShowReferenceGrid(!showReferenceGrid)}>Wechseln</button>
     </Wrapper>
   );
 }

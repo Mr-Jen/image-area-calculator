@@ -68,7 +68,7 @@ const DrawingGrid = ({inputData}) => {
         console.log("DIE FLÄCHE IN PX BETRÄGT: ", area_px)
         console.log("DIE FLÄCHE IN M BETRÄGT: ", area_m)
 
-        isActive = false;
+        isActiveRef.current = false;
     }
     
     const calcCoordDiff = (nPoint, point) => {
@@ -141,13 +141,13 @@ const DrawingGrid = ({inputData}) => {
     let isDragging = false;
     let draggingPointIndex = null;
     let pointCreated = false;
-    let isActive = true;
     const nodeButtonRadius = 5;
 
     const [position, setPosition] = useState([0,0]);
     const [showContextMenu, setShowContextMenu] = useState(false);
     const [menuPosition, setMenuPosition] = useState([]);
     const [res, setRes] = useState(null);
+    const isActiveRef = useRef(true);
     
     function draw() {
         pointCreated = false;
@@ -223,7 +223,7 @@ const DrawingGrid = ({inputData}) => {
 
     const onHandleReset = () => {
         console.log("RESETTING")
-        isActive = true;
+        isActiveRef.current = true;
         existingPoints.current = [];
         window.requestAnimationFrame(draw);
     }
@@ -241,12 +241,12 @@ const DrawingGrid = ({inputData}) => {
     function onmousedown(e) {
         if (hasLoaded && e.button === 0) {
             isDrawing = false;
-            if (!isDrawing && isActive) {
+            if (!isDrawing && isActiveRef.current) {
                 let closePoint = calcClosePoint();
 
                 if (closePoint.length > 0){
                     existingPoints.current.push(closePoint)
-                    isActive = false;
+                    isActiveRef.current = false;
                 }
                 else {                    
                     existingPoints.current.push([mouseX, mouseY])
@@ -255,7 +255,7 @@ const DrawingGrid = ({inputData}) => {
             window.requestAnimationFrame(draw);
         }
 
-        !isActive && existingPoints.current.forEach((point, index) => {
+        !isActiveRef.current && existingPoints.current.forEach((point, index) => {
             if( Math.abs(mouseX - point[0]) <= nodeButtonRadius && Math.abs(mouseY - point[1]) <= nodeButtonRadius ){
                 isDragging = true;
                 draggingPointIndex = index;
@@ -266,11 +266,11 @@ const DrawingGrid = ({inputData}) => {
     
     function onmouseup(e) {
         if (hasLoaded && e.button === 0) {
-            if (isActive) {
+            if (isActiveRef.current) {
                 isDrawing = true;
                 window.requestAnimationFrame(draw);
             }
-            if(!isActive && isDragging){
+            if(!isActiveRef.current && isDragging){
                 isDragging = false;
                 draggingPointIndex = null;
             }
@@ -288,7 +288,7 @@ const DrawingGrid = ({inputData}) => {
 
             let closePoint = calcClosePoint();
 
-            if(isActive){
+            if(isActiveRef.current){
                 drawingCanvasRef.current.style.cursor = "copy";
             }
             else {
@@ -296,9 +296,9 @@ const DrawingGrid = ({inputData}) => {
             }
 
 
-            (isDrawing && isActive) && window.requestAnimationFrame(draw);
+            (isDrawing && isActiveRef.current) && window.requestAnimationFrame(draw);
 
-            if(!isActive && isDragging){
+            if(!isActiveRef.current && isDragging){
                 if(closePoint.length > 0 && (draggingPointIndex === 0 || draggingPointIndex === existingPoints.current.length - 1)){
                     existingPoints.current[draggingPointIndex] = closePoint;
                     window.requestAnimationFrame(draw);
@@ -339,15 +339,29 @@ const DrawingGrid = ({inputData}) => {
         //drawBg();
 
         let bgCanvas = bgCanvasRef.current;
+        let bgCtx = bgCanvas.getContext("2d");
+
         bgCanvas.width = 1200;
         bgCanvas.height = 600;
         console.log("DRAWING BG")
+
         let bgImage = new Image();        
         bgImage.src = URL.createObjectURL(inputData["image"]);
-        //bgImage.src = "http://i.imgur.com/yf6d9SX.jpg";
+
+        bgCtx.save();
+
+        bgCtx.translate( 1200/2, 600/2 );
+        bgCtx.rotate( inputData["imgAngle"] * Math.PI / 180 );
+        bgCtx.translate( -(1200/2), -(600/2) );
+
+        //console.log("CTX BEFORE DRAWING IMAGE: ", bgCtx)
+        console.log("WINKEL: ", inputData["imgAngle"])
+
         bgImage.onload = function (){            
-            bgCanvas.getContext("2d").drawImage(bgImage, 0, 0)
+            bgCtx.drawImage(bgImage, inputData["imgPos"][0], inputData["imgPos"][1]);
         }
+        
+        //bgCtx.restore();
         bgImage.onerror = failed;
 
         let drawingCanvas = drawingCanvasRef.current;

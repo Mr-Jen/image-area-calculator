@@ -134,7 +134,6 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         imgPosY = imagePosition.current[1];
         
         if ((mouseX >= imgPosX && mouseX <= imgWidth + imgPosX) && (mouseY >= imgPosY && mouseY <= imgHeight + imgPosY)){
-            console.log("ON IMAGE")
             isDragging = true;
             dragStartPosition = [mouseX - imagePosition.current[0], mouseY - imagePosition.current[1]]
         }
@@ -192,8 +191,8 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         
         draw();
     }
-  
-    window.onload = function() {
+
+    const onLoadFunc = () => {
         let bgCanvas = bgCanvasRef.current;
         bgCanvas.width = 1200;
         bgCanvas.height = 600;
@@ -209,6 +208,10 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         ctx.fillRect(0,0,bgCanvas.width,bgCanvas.height);
         bgCanvas && console.log("canvas loaded")
     }
+  
+    /*window.onload = function() {
+        onLoadFunc();
+    }*/
 
     const loadImage = (path) => {
         let bgImage = new Image();
@@ -232,31 +235,11 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         ctx.rotate( angle * Math.PI / 180 );
         ctx.translate( -(1200/2), -(600/2) );
 
+        //console.log("CTX BEFORE DRAWING IMAGE: ", ctx)
+
         imageObjRef.current && ctx.drawImage(imageObjRef.current, imagePosition.current[0], imagePosition.current[1]);
 
         ctx.restore();
-
-        /*
-        // define a rectangle to rotate
-        var rect={ x:100, y:100, width:175, height:50 };
-
-        // draw the rectangle unrotated
-        ctx.fillRect( rect.x, rect.y, rect.width, rect.height );
-
-        // draw the rectangle rotated by 45 degrees (==PI/4 radians)
-        ctx.translate( rect.x+rect.width/2, rect.y+rect.height/2 );
-        ctx.rotate( angle * Math.PI / 180 );
-        ctx.translate( -rect.x-rect.width/2, -rect.y-rect.height/2 );
-        ctx.fillRect( rect.x, rect.y, rect.width, rect.height );*/
-
-
-        /*// undo #3
-        ctx.translate( 1200/2, 600/2 );
-        // undo #2
-        ctx.rotate( -(angle * Math.PI / 180) );
-        // undo #1
-        ctx.translate( -(1200/2), 600/2 );*/
-
     }
 
     const onChangeInputFile = (e) => {
@@ -290,6 +273,8 @@ const ReferenceGrid = ({onHandleSubmit}) => {
             //console.log("IMG, REF, LÄNGE: ", inputFile, inputReference, inputLength);
             onHandleSubmit({
                 "image": inputFile,
+                "imgPos": imagePosition.current,
+                "imgAngle": angle,
                 "inputRef": inputReference,
                 "inputLength": inputLength
             })
@@ -301,7 +286,6 @@ const ReferenceGrid = ({onHandleSubmit}) => {
     useEffect(() => { 
         imageRef.current = inputFile;     
         if(inputFile){
-            console.log("CHANGING IMAGE POSITION IN USEFFFECT")
             imagePosition.current = [0,0];
             let imgSrc = imageRef.current ? URL.createObjectURL(imageRef.current) : URL.createObjectURL(inputFile);
             loadImage(imgSrc).then((image) => {
@@ -316,6 +300,11 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         //console.log("REDRAWN AFTER STATE SET", angle);
         window.requestAnimationFrame(drawBgImage);
     }, [angle])
+
+    useEffect(() => {
+        console.log("------------- RENDERING REFERENCEGRID --------------")
+        onLoadFunc();
+    }, [])
 
     return (
         <Wrapper>
