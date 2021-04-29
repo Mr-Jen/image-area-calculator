@@ -178,6 +178,32 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         isDragging = false;
     }
 
+    function onBgMousewheel (e){
+        console.log("SCROLLED WITH MOUSE WHEEL: ", e.wheelDelta)
+
+        /*var mousex = e.clientX - canvas.offsetLeft;
+        var mousey = e.clientY - canvas.offsetTop;
+        var wheel = e.wheelDelta / 120; //n or -n
+    
+    
+        //according to Chris comment
+        var zoom = Math.pow(1 + Math.abs(wheel) / 2, wheel > 0 ? 1 : -1);
+    
+        context.translate(
+          originx,
+          originy
+        );
+        context.scale(zoom, zoom);
+        context.translate(
+          -(mousex / scale + originx - mousex / (scale * zoom)),
+          -(mousey / scale + originy - mousey / (scale * zoom))
+        );
+    
+        originx = (mousex / scale + originx - mousex / (scale * zoom));
+        originy = (mousey / scale + originy - mousey / (scale * zoom));
+        scale *= zoom;*/
+    }
+
     const loadDrawingCanvas = () => {
         drawingCanvas = drawingCanvasRef.current;
         drawingCanvas.width = 1200;
@@ -201,6 +227,8 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         bgCanvas.onmouseup = onBgUp;
         bgCanvas.onmousemove = onBgMove;
         bgCanvas.onmouseout = onBgOut;
+        //bgCanvas.onmousewheel = onBGMousewheel;
+        bgCanvas.addEventListener('wheel', onBgMousewheel, {passive: true});
 
         bounds = bgCanvas.getBoundingClientRect();
         ctx = bgCanvas.getContext("2d");
@@ -231,11 +259,12 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         ctx.clearRect(0, 0, cs.width, cs.height);
         ctx.save();
 
+        //ctx.setTransform(1, 0, 0, 1, 0, 0);
+        //context.clearRect(0, 0, canvas.width, canvas.height);
+
         ctx.translate( 1200/2, 600/2 );
         ctx.rotate( angle * Math.PI / 180 );
         ctx.translate( -(1200/2), -(600/2) );
-
-        //console.log("CTX BEFORE DRAWING IMAGE: ", ctx)
 
         imageObjRef.current && ctx.drawImage(imageObjRef.current, imagePosition.current[0], imagePosition.current[1]);
 
