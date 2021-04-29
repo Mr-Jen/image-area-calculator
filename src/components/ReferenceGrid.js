@@ -187,13 +187,18 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         bgCanvas && console.log("canvas loaded")
     }
 
+    const loadBgCanvas = () => {
+
+    }
+
     const drawBg = () => {
         let cs = bgCanvasRef.current;
+        let ctx = cs.getContext("2d");
         let bgImage = new Image(); 
 
         console.log("CURRENT IMAGE POSITION: ", imagePosition.current);
 
-        cs.getContext("2d").clearRect(0, 0, cs.width, cs.height);
+        ctx.clearRect(0, 0, cs.width, cs.height);
 
         //console.log("INPUT FILE: ", inputFile);
         //console.log("FILE REF: ", imageRef.current);
@@ -202,10 +207,38 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         //bgImage.srcObject = file;
         //bgImage.srcObject = URL.createObjectURL(inputFile);
         //bgImage.src = "http://i.imgur.com/yf6d9SX.jpg";
+
+        /*ctx.translate( 1200/2, 600/2 );
+        ctx.rotate( angle * Math.PI / 180 );
+        ctx.translate( -(1200/2), -(600/2) );*/
+
+        console.log(cs.width, cs.height)
+        
+        /*
+        // define a rectangle to rotate
+        var rect={ x:100, y:100, width:175, height:50 };
+
+        // draw the rectangle unrotated
+        ctx.fillRect( rect.x, rect.y, rect.width, rect.height );
+
+        // draw the rectangle rotated by 45 degrees (==PI/4 radians)
+        ctx.translate( rect.x+rect.width/2, rect.y+rect.height/2 );
+        ctx.rotate( angle * Math.PI / 180 );
+        ctx.translate( -rect.x-rect.width/2, -rect.y-rect.height/2 );
+        ctx.fillRect( rect.x, rect.y, rect.width, rect.height );*/
+
         bgImage.onload = function (){            
             //cs.getContext("2d").drawImage(bgImage, imagePosition.current[0], imagePosition.current[1])
-            cs.getContext("2d").drawImage(bgImage, imagePosition.current[0], imagePosition.current[1]);
+            ctx.drawImage(bgImage, imagePosition.current[0], imagePosition.current[1]);
         }
+
+        /*// undo #3
+        ctx.translate( 1200/2, 600/2 );
+        // undo #2
+        ctx.rotate( -(angle * Math.PI / 180) );
+        // undo #1
+        ctx.translate( -(1200/2), 600/2 );*/
+
         bgImage.onerror = failed;
     }
 
@@ -225,6 +258,7 @@ const ReferenceGrid = ({onHandleSubmit}) => {
     const [inputFile, setInputFile] = useState();
     const imageRef = React.useRef();
     const [editImage, setEditImage] = useState(false);
+    const [angle, setAngle] = useState(0);
     const drawingCanvasRef = React.useRef();
     const bgCanvasRef = React.useRef();
     const imagePosition = React.useRef([]);
@@ -257,11 +291,19 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         }
     }, [inputFile])
 
+    useEffect(() => {
+        console.log("REDRAWN AFTER STATE SET", angle);
+        angle !== 0 && window.requestAnimationFrame(drawBg);
+    }, [angle, drawBg])
+
     return (
         <Wrapper>
             <h5>Reference Grid</h5>            
             <input onChange={(e) => onChangeInputFile(e)} type="file" id="input-img" accept=".png, .jpg, .jpeg"></input>
             <button hidden={!inputFile} onClick={() => setEditImage(!editImage)}>{editImage ? "Bild sichern" : "Bild bearbeiten"}</button>
+            {  editImage &&
+                <input type="number" min="-180" max="180" value={angle} onChange={(e) => setAngle(e.target.value)} placeholder="Winkel"></input>
+            }
             <CanvasWrapper>
                 <Canvas ref={bgCanvasRef} style={{cursor: editImage && "all-scroll"}} id="bgCanvas"></Canvas>
                 <Canvas hidden={!inputFile || editImage} ref={drawingCanvasRef} id="drawingCanvas"></Canvas>
