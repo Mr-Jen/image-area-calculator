@@ -43,6 +43,11 @@ const ReferenceGrid = ({onHandleSubmit}) => {
     let inputLine = {}
     let isDragging = false;
     let dragStartPosition = [];
+
+    let imgHeight;
+    let imgWidth;
+    let imgPosX;
+    let imgPosY;
     
     function draw() {
         
@@ -123,8 +128,16 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         let cs = bgCanvasRef.current;
         bounds = cs.getBoundingClientRect();
 
-        isDragging = true;
-        dragStartPosition = [e.clientX - bounds.left - imagePosition.current[0], e.clientY - bounds.top - imagePosition.current[1]]
+        imgHeight = imageObjRef.current.height;
+        imgWidth = imageObjRef.current.width;
+        imgPosX = imagePosition.current[0];
+        imgPosY = imagePosition.current[1];
+        
+        if ((mouseX >= imgPosX && mouseX <= imgWidth + imgPosX) && (mouseY >= imgPosY && mouseY <= imgHeight + imgPosY)){
+            console.log("ON IMAGE")
+            isDragging = true;
+            dragStartPosition = [mouseX - imagePosition.current[0], mouseY - imagePosition.current[1]]
+        }
     }
 
     function onBgUp (e){
@@ -144,13 +157,20 @@ const ReferenceGrid = ({onHandleSubmit}) => {
 
         mouseX = e.clientX - bounds.left;
         mouseY = e.clientY - bounds.top;
+        imgHeight = imageObjRef.current && imageObjRef.current.height;
+        imgWidth = imageObjRef.current && imageObjRef.current.width;
+        imgPosX = imagePosition.current[0];
+        imgPosY = imagePosition.current[1];
+
+        if ((mouseX >= imgPosX && mouseX <= imgWidth + imgPosX) && (mouseY >= imgPosY && mouseY <= imgHeight + imgPosY)){
+            cs.style.cursor = "all-scroll"
+        }
+        else {
+            cs.style.cursor = "default"
+        }
 
         if(isDragging){
-            //console.log("DRAGGING NOW");
-            //imagePosition.current = [mouseX, mouseY];
-            console.log("OLD POSITION: ", imagePosition.current);
             imagePosition.current = [mouseX - dragStartPosition[0], mouseY - dragStartPosition[1]];
-            console.log("NEW POSITION: ", imagePosition.current);
             window.requestAnimationFrame(drawBgImage);
         }
     }
@@ -206,21 +226,16 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         let ctx = cs.getContext("2d");
 
         ctx.clearRect(0, 0, cs.width, cs.height);
+        ctx.save();
+
+        ctx.translate( 1200/2, 600/2 );
+        ctx.rotate( angle * Math.PI / 180 );
+        ctx.translate( -(1200/2), -(600/2) );
 
         imageObjRef.current && ctx.drawImage(imageObjRef.current, imagePosition.current[0], imagePosition.current[1]);
 
-        //console.log("INPUT FILE: ", inputFile);
-        //console.log("FILE REF: ", imageRef.current);
-        
-        //bgImage.srcObject = file;
-        //bgImage.srcObject = URL.createObjectURL(inputFile);
-        //bgImage.src = "http://i.imgur.com/yf6d9SX.jpg";
+        ctx.restore();
 
-        /*ctx.translate( 1200/2, 600/2 );
-        ctx.rotate( angle * Math.PI / 180 );
-        ctx.translate( -(1200/2), -(600/2) );*/
-
-        
         /*
         // define a rectangle to rotate
         var rect={ x:100, y:100, width:175, height:50 };
@@ -297,22 +312,21 @@ const ReferenceGrid = ({onHandleSubmit}) => {
         }
     }, [inputFile])
 
-    /*useEffect(() => {
-        console.log("REDRAWN AFTER STATE SET", angle);
-        angle !== 0 && window.requestAnimationFrame(loadBgCanvas);
-    }, [angle, loadBgCanvas])*/
+    useEffect(() => {
+        //console.log("REDRAWN AFTER STATE SET", angle);
+        window.requestAnimationFrame(drawBgImage);
+    }, [angle])
 
-    console.log("RERENDRED")
     return (
         <Wrapper>
             <h5>Reference Grid</h5>            
             <input onChange={(e) => onChangeInputFile(e)} type="file" id="input-img" accept=".png, .jpg, .jpeg"></input>
             <button hidden={!inputFile} onClick={() => setEditImage(!editImage)}>{editImage ? "Bild sichern" : "Bild bearbeiten"}</button>
             {  editImage &&
-                <input type="number" min="-180" max="180" value={angle} onChange={(e) => setAngle(e.target.value)} placeholder="Winkel"></input>
+                <input type="number" step="0.01" min="-180" max="180" value={angle} onChange={(e) => setAngle(e.target.value)} placeholder="Winkel"></input>
             }
             <CanvasWrapper>
-                <Canvas ref={bgCanvasRef} style={{cursor: editImage && "all-scroll"}} id="bgCanvas"></Canvas>
+                <Canvas ref={bgCanvasRef} id="bgCanvas"></Canvas>
                 <Canvas hidden={!inputFile || editImage} ref={drawingCanvasRef} id="drawingCanvas"></Canvas>
             </CanvasWrapper>
             <InputWrapper>
