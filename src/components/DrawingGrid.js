@@ -313,11 +313,19 @@ const DrawingGrid = ({inputData}) => {
         }
     }
 
+    function onwindowmove(e){
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+        console.log("ON MOUSE MOVE: ", [mouseX, mouseY])
+        absMouse.current = [mouseX, mouseY]
+    }
+
     const drawingCanvasRef = React.useRef();
     const bgCanvasRef = React.useRef();
     let existingPoints = useRef([]);
     let selectedNodeIndex = useRef(null);
     let intersectedPoints = useRef([]);
+    let absMouse = useRef([]);
 
     const drawBg = () => {
         let cs = bgCanvasRef.current;
@@ -366,6 +374,8 @@ const DrawingGrid = ({inputData}) => {
         //bgCtx.restore();
         bgImage.onerror = failed;
 
+        //window.onmousemove = onwindowmove;
+
         let drawingCanvas = drawingCanvasRef.current;
         drawingCanvas.addEventListener('contextmenu', function(event) {
             event.preventDefault();
@@ -375,15 +385,15 @@ const DrawingGrid = ({inputData}) => {
 
             intersectedPoints.current.length > 0 && addPointOnLine();
 
-            existingPoints.current.forEach((point) => {
-                if( (Math.abs(mouseX - point[0]) <= nodeButtonRadius && Math.abs(mouseY - point[1]) <= nodeButtonRadius) && !pointCreated ){
-                    selectedNodeIndex.current = existingPoints.current.indexOf(point)
-                    console.log("SHOW CONTEXT MENU OF NODE: ", selectedNodeIndex.current)
-                    setShowContextMenu(true);
-                    setMenuPosition(point);
-                }
-            })
+            let cPoint = calcClosePoint();
+            if(cPoint.length > 0){
+                selectedNodeIndex.current = existingPoints.current.indexOf(cPoint)
+                console.log("SHOW CONTEXT MENU OF NODE: ", selectedNodeIndex.current)
+                setShowContextMenu(true);
+                setMenuPosition(cPoint);
+            }
         });
+
         drawingCanvas.width = 1200;
         drawingCanvas.height = 600;
         bounds = drawingCanvas.getBoundingClientRect();
