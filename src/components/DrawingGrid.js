@@ -151,6 +151,7 @@ const DrawingGrid = ({inputData}) => {
     const [res, setRes] = useState(null);
     const isActiveRef = useRef(true);
     const draggingPointIndexRef = useRef();
+    const absMousePosRef = useRef([]);
     
     function draw() {
         pointCreated = false;
@@ -158,7 +159,6 @@ const DrawingGrid = ({inputData}) => {
         ctx = drawingCanvas.getContext("2d");
         let canvasHeight = 600;
         let canvasWidth = 1200;
-
 
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
@@ -221,6 +221,7 @@ const DrawingGrid = ({inputData}) => {
         setShowContextMenu(false);
         selectedNodeIndex.current > -1 && existingPoints.current.splice(selectedNodeIndex.current, 1);
         selectedNodeIndex.current = null;
+        drawingCanvasRef.current.style.cursor = "default";
         window.requestAnimationFrame(draw);
     }
 
@@ -263,6 +264,7 @@ const DrawingGrid = ({inputData}) => {
             //console.log("NOW DRAGGING IN MOUSEDOWN")
             isDragging = true;
             draggingPointIndexRef.current = existingPoints.current.indexOf(closeP);
+            drawingCanvasRef.current.style.cursor = "grabbing";
         }
     }
     
@@ -301,6 +303,7 @@ const DrawingGrid = ({inputData}) => {
             (isDrawing && isActiveRef.current) && window.requestAnimationFrame(draw);
 
             if(!isActiveRef.current && isDragging){
+                drawingCanvasRef.current.style.cursor = "grabbing";
                 if(closePoint.length > 0 && (draggingPointIndexRef.current === 0 || draggingPointIndexRef.current === existingPoints.current.length - 1)){
                     existingPoints.current[draggingPointIndexRef.current] = closePoint;
                     window.requestAnimationFrame(draw);
@@ -314,10 +317,7 @@ const DrawingGrid = ({inputData}) => {
     }
 
     function onwindowmove(e){
-        mouseX = e.clientX;
-        mouseY = e.clientY;
-        console.log("ON MOUSE MOVE: ", [mouseX, mouseY])
-        absMouse.current = [mouseX, mouseY]
+        absMousePosRef.current = [e.clientX, e.clientY];
     }
 
     const drawingCanvasRef = React.useRef();
@@ -325,7 +325,6 @@ const DrawingGrid = ({inputData}) => {
     let existingPoints = useRef([]);
     let selectedNodeIndex = useRef(null);
     let intersectedPoints = useRef([]);
-    let absMouse = useRef([]);
 
     const drawBg = () => {
         let cs = bgCanvasRef.current;
@@ -374,8 +373,6 @@ const DrawingGrid = ({inputData}) => {
         //bgCtx.restore();
         bgImage.onerror = failed;
 
-        //window.onmousemove = onwindowmove;
-
         let drawingCanvas = drawingCanvasRef.current;
         drawingCanvas.addEventListener('contextmenu', function(event) {
             event.preventDefault();
@@ -383,14 +380,19 @@ const DrawingGrid = ({inputData}) => {
             isDragging = true;
             draggingPointIndexRef.current = null;
 
-            intersectedPoints.current.length > 0 && addPointOnLine();
+            if(intersectedPoints.current.length > 0){
+                addPointOnLine(); 
+            }
 
             let cPoint = calcClosePoint();
-            if(cPoint.length > 0){
+
+            if(cPoint.length > 0 && !pointCreated){
                 selectedNodeIndex.current = existingPoints.current.indexOf(cPoint)
                 console.log("SHOW CONTEXT MENU OF NODE: ", selectedNodeIndex.current)
                 setShowContextMenu(true);
-                setMenuPosition(cPoint);
+                setMenuPosition(absMousePosRef.current);
+
+                drawingCanvasRef.current.style.cursor = "default";
             }
         });
 
@@ -402,6 +404,8 @@ const DrawingGrid = ({inputData}) => {
         drawingCanvas.onmousedown = onmousedown;
         drawingCanvas.onmouseup = onmouseup;
         drawingCanvas.onmousemove = onmousemove;
+
+        window.onmousemove = onwindowmove;
         
         window.requestAnimationFrame(draw);
     }, [])
