@@ -106,11 +106,13 @@ const DrawingGrid = ({inputData}) => {
 
             if(nPoint !== null && calcCoordDiff(nPoint, point) && (isNotOnPointX && isNotOnPointY) ){
                 //console.log("CROSSING LINE: ", calcCoordDiff(nPoint, point) ? true : false);
-                console.group();
+
+                /*console.group();
                 console.log("SLOPE: ", slope);
                 console.log("Calculated Y: ", calculatedY, "MouseY: ", mouseY);
                 console.log("Y DIFFERENCE: ", Math.abs(calculatedY - mouseY), "BETWEEN POINTS: ", index, index+1);
-                console.groupEnd();
+                console.groupEnd();*/
+
                 if (Math.abs(calculatedY - mouseY) <= 20) {
                     lineIntersect = true;
                     intersectedPoints.current = [point, nPoint];
@@ -139,7 +141,7 @@ const DrawingGrid = ({inputData}) => {
     let mouseY = 0;
     let isDrawing = false;
     let isDragging = false;
-    let draggingPointIndex = null;
+    //let draggingPointIndex = null;
     let pointCreated = false;
     const nodeButtonRadius = 5;
 
@@ -148,6 +150,7 @@ const DrawingGrid = ({inputData}) => {
     const [menuPosition, setMenuPosition] = useState([]);
     const [res, setRes] = useState(null);
     const isActiveRef = useRef(true);
+    const draggingPointIndexRef = useRef();
     
     function draw() {
         pointCreated = false;
@@ -255,13 +258,12 @@ const DrawingGrid = ({inputData}) => {
             window.requestAnimationFrame(draw);
         }
 
-        !isActiveRef.current && existingPoints.current.forEach((point, index) => {
-            if( Math.abs(mouseX - point[0]) <= nodeButtonRadius && Math.abs(mouseY - point[1]) <= nodeButtonRadius ){
-                isDragging = true;
-                draggingPointIndex = index;
-
-            }
-        })
+        let closeP = calcClosePoint();
+        if (closeP.length > 0){
+            //console.log("NOW DRAGGING IN MOUSEDOWN")
+            isDragging = true;
+            draggingPointIndexRef.current = existingPoints.current.indexOf(closeP);
+        }
     }
     
     function onmouseup(e) {
@@ -272,7 +274,7 @@ const DrawingGrid = ({inputData}) => {
             }
             if(!isActiveRef.current && isDragging){
                 isDragging = false;
-                draggingPointIndex = null;
+                draggingPointIndexRef.current = null;
             }
         }
     }
@@ -299,12 +301,12 @@ const DrawingGrid = ({inputData}) => {
             (isDrawing && isActiveRef.current) && window.requestAnimationFrame(draw);
 
             if(!isActiveRef.current && isDragging){
-                if(closePoint.length > 0 && (draggingPointIndex === 0 || draggingPointIndex === existingPoints.current.length - 1)){
-                    existingPoints.current[draggingPointIndex] = closePoint;
+                if(closePoint.length > 0 && (draggingPointIndexRef.current === 0 || draggingPointIndexRef.current === existingPoints.current.length - 1)){
+                    existingPoints.current[draggingPointIndexRef.current] = closePoint;
                     window.requestAnimationFrame(draw);
                 }
                 else {
-                    existingPoints.current[draggingPointIndex] = [mouseX, mouseY];
+                    existingPoints.current[draggingPointIndexRef.current] = [mouseX, mouseY];
                     window.requestAnimationFrame(draw);
                 }
             }
@@ -369,7 +371,7 @@ const DrawingGrid = ({inputData}) => {
             event.preventDefault();
 
             isDragging = true;
-            draggingPointIndex = null;
+            draggingPointIndexRef.current = null;
 
             intersectedPoints.current.length > 0 && addPointOnLine();
 

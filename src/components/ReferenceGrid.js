@@ -48,6 +48,10 @@ const ReferenceGrid = ({onHandleSubmit}) => {
     let imgWidth;
     let imgPosX;
     let imgPosY;
+
+    var scale = 1.5;
+    var originx = 0;
+    var originy = 0;
     
     function draw() {
         
@@ -181,27 +185,32 @@ const ReferenceGrid = ({onHandleSubmit}) => {
     function onBgMousewheel (e){
         console.log("SCROLLED WITH MOUSE WHEEL: ", e.wheelDelta)
 
-        /*var mousex = e.clientX - canvas.offsetLeft;
-        var mousey = e.clientY - canvas.offsetTop;
+        //let cs = bgCanvasRef.current.getContext("2d");
+
+        var mousex = e.clientX - bgCanvasRef.offsetLeft;
+        var mousey = e.clientY - bgCanvasRef.offsetTop;
         var wheel = e.wheelDelta / 120; //n or -n
-    
     
         //according to Chris comment
         var zoom = Math.pow(1 + Math.abs(wheel) / 2, wheel > 0 ? 1 : -1);
     
-        context.translate(
+        bgCanvasRef.current.getContext("2d").translate(
           originx,
           originy
         );
-        context.scale(zoom, zoom);
-        context.translate(
+        bgCanvasRef.current.getContext("2d").scale(zoom, zoom);
+        bgCanvasRef.current.getContext("2d").translate(
           -(mousex / scale + originx - mousex / (scale * zoom)),
           -(mousey / scale + originy - mousey / (scale * zoom))
         );
     
         originx = (mousex / scale + originx - mousex / (scale * zoom));
         originy = (mousey / scale + originy - mousey / (scale * zoom));
-        scale *= zoom;*/
+        scale *= zoom;
+
+        //bgCanvasRef.current.getContext("2d").clearRect(0, 0, bgCanvasRef.current.width, bgCanvasRef.current.height);
+
+        window.requestAnimationFrame(drawBgImage);
     }
 
     const loadDrawingCanvas = () => {
@@ -261,6 +270,8 @@ const ReferenceGrid = ({onHandleSubmit}) => {
 
         //ctx.setTransform(1, 0, 0, 1, 0, 0);
         //context.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        //ctx.clearRect(0, 0, cs.width, cs.height);
 
         ctx.translate( 1200/2, 600/2 );
         ctx.rotate( angle * Math.PI / 180 );
@@ -348,7 +359,7 @@ const ReferenceGrid = ({onHandleSubmit}) => {
                 <Canvas hidden={!inputFile || editImage} ref={drawingCanvasRef} id="drawingCanvas"></Canvas>
             </CanvasWrapper>
             <InputWrapper>
-                <input id="input" type="number" placeholder="Länge in Metern" value={inputLength} onChange={(e) => onHandleInputChange(e)}></input>
+                <input id="input" type="number" min="0" placeholder="Länge in Metern" value={inputLength} onChange={(e) => onHandleInputChange(e)}></input>
                 <button onClick={() => onSubmit()}>Weiter --></button>  
             </InputWrapper>
         </Wrapper>
